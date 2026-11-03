@@ -1,0 +1,15 @@
+{
+  "name": "cubix",
+  "version": "1.0.0",
+  "description": "Juego de bloques multijugador en el navegador",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "8.18.0"
+  }
+}
