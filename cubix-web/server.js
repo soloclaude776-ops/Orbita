@@ -23,9 +23,11 @@ function save() {
 const PUB = fs.existsSync(path.join(__dirname, 'dist', 'eter.html')) ? 'dist' : 'public';
 const html = fs.readFileSync(path.join(__dirname, PUB, 'index.html'));
 const eterHtml = fs.readFileSync(path.join(__dirname, PUB, 'eter.html'));
+const testHtml = fs.readFileSync(path.join(__dirname, 'public', 'test.html')); // prueba qué soporta el navegador (Play, tele...)
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.end('ok'); return; }
   if (handleAi(req, res)) return;
+  if (/^\/test\/?(\?.*)?$/i.test(req.url)) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(testHtml); return; }
   if (/^\/eter\/?(\?.*)?$/i.test(req.url)) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(eterHtml); return; }
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
   res.end(html);

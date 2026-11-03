@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba del navegador</title>
+<style>
+  body{margin:0;background:#0b1218;color:#eef3f6;font:18px/1.5 sans-serif;padding:24px}
+  h1{font-size:26px;margin:0 0 12px}
+  .ok{color:#7fe07a}.no{color:#ff7a7a}
+  li{margin:4px 0}
+  code{color:#8fe3ff;word-break:break-all}
+</style>
+</head>
+<body>
+<h1>Prueba del navegador para Cubix y Éter</h1>
+<p>Sacale una foto a esta pantalla y mandásela a Claude.</p>
+<ul id="out"></ul>
+<p id="pad">Mando: apretá cualquier botón del mando…</p>
+<script>
+// Página simple a propósito (JavaScript viejo) para que funcione en cualquier navegador
+var out = document.getElementById('out');
+function line(text, good) {
+  var li = document.createElement('li');
+  if (good !== undefined) li.className = good ? 'ok' : 'no';
+  li.textContent = text;
+  out.appendChild(li);
+}
+line('Navegador: ' + navigator.userAgent);
+var kinds = ['webgl2', 'webgl', 'experimental-webgl'];
+var opts = [{}, { antialias: false }, { antialias: false, failIfMajorPerformanceCaveat: false, powerPreference: 'low-power' }];
+var anyGl = null;
+for (var i = 0; i < kinds.length; i++) {
+  for (var j = 0; j < opts.length; j++) {
+    var c = document.createElement('canvas'), why = '';
+    c.addEventListener('webglcontextcreationerror', function (e) { why = e.statusMessage || ''; });
+    var gl = null;
+    try { gl = c.getContext(kinds[i], opts[j]); } catch (e) { why = e.message; }
+    line(kinds[i] + ' opciones ' + (j + 1) + ': ' + (gl ? 'anda' : 'no anda' + (why ? ' (' + why + ')' : '')), !!gl);
+    if (gl && !anyGl) anyGl = gl;
+  }
+}
+if (anyGl) {
+  var dbg = anyGl.getExtension('WEBGL_debug_renderer_info');
+  line('Placa: ' + (dbg ? anyGl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : anyGl.getParameter(anyGl.RENDERER)));
+  line('Versión: ' + anyGl.getParameter(anyGl.VERSION));
+  line('Dibujar muchas copias (instancing): ' + (anyGl.getExtension('ANGLE_instanced_arrays') || anyGl.drawArraysInstanced ? 'sí' : 'no'), !!(anyGl.getExtension('ANGLE_instanced_arrays') || anyGl.drawArraysInstanced));
+} else {
+  line('Este navegador no da gráficos 3D (WebGL) de ninguna forma.', false);
+}
+// Velocidad de JavaScript: sirve para saber si se puede hacer una versión sin 3D
+var t0 = Date.now(), x = 0;
+for (var k = 0; k < 20000000; k++) { x = (x + k * 7) % 1000003; }
+var ms = Date.now() - t0;
+line('Velocidad de JavaScript: ' + ms + ' ms (menos de 300 es rápido)', ms < 300);
+var c2 = document.createElement('canvas');
+line('Dibujo 2D: ' + (c2.getContext && c2.getContext('2d') ? 'anda' : 'no anda'), !!(c2.getContext && c2.getContext('2d')));
+line('Lectura del mando: ' + (navigator.getGamepads ? 'disponible' : 'no disponible'), !!navigator.getGamepads);
+var padEl = document.getElementById('pad');
+setInterval(function () {
+  if (!navigator.getGamepads) return;
+  var list = navigator.getGamepads(), found = null;
+  for (var i = 0; i < list.length; i++) if (list[i]) found = list[i];
+  if (!found) return;
+  var pressed = [];
+  for (var b = 0; b < found.buttons.length; b++) if (found.buttons[b].pressed) pressed.push(b);
+  padEl.className = 'ok';
+  padEl.textContent = 'Mando detectado: ' + found.id + ' · botones apretados: ' + (pressed.join(', ') || 'ninguno');
+}, 300);
+</script>
+</body>
+</html>

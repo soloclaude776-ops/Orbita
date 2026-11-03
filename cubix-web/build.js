@@ -9,8 +9,8 @@ const OUT = path.join(__dirname, 'dist');
 const CATCH = '<script>(function(){function show(m){var d=document.getElementById("errbox");if(!d){d=document.createElement("div");d.id="errbox";'
   + 'd.style.cssText="position:fixed;left:8px;right:8px;top:8px;z-index:99;background:#5a1010;color:#fff;font:14px sans-serif;padding:10px;border-radius:8px";'
   + '(document.body||document.documentElement).appendChild(d);}d.textContent="Algo falló en este navegador: "+m;}'
-  + 'window.addEventListener("error",function(e){show((e.message||"error")+" (línea "+(e.lineno||"?")+")");});'
-  + 'window.addEventListener("unhandledrejection",function(e){show(String(e.reason&&e.reason.message||e.reason));});})();</script>\n';
+  + 'window.addEventListener("error",function(e){if(window.__noWebGL)return;show((e.message||"error")+" (línea "+(e.lineno||"?")+")");});'
+  + 'window.addEventListener("unhandledrejection",function(e){if(window.__noWebGL)return;show(String(e.reason&&e.reason.message||e.reason));});})();</script>\n';
 
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
