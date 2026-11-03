@@ -11,6 +11,7 @@ const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'world.json');
 // Estado del mundo: semilla + hora de inicio del día, y los bloques cambiados por chunk
 let state = { meta: { seed: (Math.random() * 1e9) | 0, t0: Date.now() }, chunks: {} };
 try { state = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e) { /* mundo nuevo */ }
+state.docs = state.docs || {}; // contenido de los cofres
 let saveTimer = null;
 function save() {
   clearTimeout(saveTimer);
@@ -42,7 +43,7 @@ wss.on('connection', ws => {
       c.admin = !!ADMIN_KEY && m.key === ADMIN_KEY;
       clients.set(ws, c);
       const peers = [...clients.values()].filter(o => o !== c && o.p).map(o => ({ id: o.id, name: o.name, p: o.p }));
-      ws.send(JSON.stringify({ t: 'init', you: c.id, meta: state.meta, chunks: state.chunks, peers }));
+      ws.send(JSON.stringify({ t: 'init', you: c.id, meta: state.meta, chunks: state.chunks, docs: state.docs, peers }));
       return;
     }
     if (!clients.has(ws)) return;
@@ -52,11 +53,13 @@ wss.on('connection', ws => {
       state.chunks[m.ck] = m.b; save(); broadcast({ t: 'chunk', ck: m.ck, b: m.b }, ws);
     } else if (m.t === 'chunkdel' && c.admin && /^c_\d+_\d+$/.test(m.ck)) {
       delete state.chunks[m.ck]; save(); broadcast({ t: 'chunkdel', ck: m.ck }, ws);
+    } else if (m.t === 'doc' && /^chests\/c_\d+_\d+_\d+$/.test(m.path) && m.data && typeof m.data === 'object' && JSON.stringify(m.data).length < 20000) {
+      state.docs[m.path] = m.data; save(); broadcast({ t: 'doc', path: m.path, data: m.data }, ws);
     } else if (m.t === 'meta' && m.meta) {
       const seed = Number(m.meta.seed) | 0, t0 = Number(m.meta.t0) || Date.now();
       const newWorld = seed !== state.meta.seed;
       if (newWorld && !c.admin) return; // solo el admin puede borrar el mundo
-      if (newWorld) state.chunks = {};
+      if (newWorld) { state.chunks = {}; state.docs = {}; }
       state.meta = { seed, t0 }; save();
       broadcast({ t: 'meta', meta: state.meta }, newWorld ? null : ws);
     }
