@@ -4,12 +4,15 @@
   "description": "Juego de bloques multijugador en el navegador",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "node build.js",
+    "build": "node build.js"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
+    "esbuild-wasm": "0.24.0",
     "ws": "8.18.0"
   }
 }

@@ -3,6 +3,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
+const handleAi = require('./ai'); // los personajes de Éter piensan con IA
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = process.env.ADMIN_KEY || '';           // clave para poder hacer "Mundo nuevo"
@@ -18,9 +19,14 @@ function save() {
   saveTimer = setTimeout(() => fs.writeFile(DATA_FILE, JSON.stringify(state), () => {}), 2000);
 }
 
-const html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'));
+// dist/ tiene las páginas traducidas para navegadores viejos como el de la Play (las arma build.js); si no está, se usan las originales
+const PUB = fs.existsSync(path.join(__dirname, 'dist', 'eter.html')) ? 'dist' : 'public';
+const html = fs.readFileSync(path.join(__dirname, PUB, 'index.html'));
+const eterHtml = fs.readFileSync(path.join(__dirname, PUB, 'eter.html'));
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.end('ok'); return; }
+  if (handleAi(req, res)) return;
+  if (/^\/eter\/?(\?.*)?$/i.test(req.url)) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(eterHtml); return; }
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
   res.end(html);
 });

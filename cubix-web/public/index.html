@@ -228,7 +228,8 @@ body.touch #hotbar{pointer-events:auto}
   if(!/^https?:$/.test(location.protocol)) return;
   let name=''; try{ name=localStorage.getItem('cubix-name')||''; }catch(e){}
   if(!name){
-    name=((window.prompt('¿Cómo te llamás? (lo ven los demás jugadores)')||'').trim().slice(0,20))||('Jugador'+(100+Math.random()*900|0));
+    let typed=''; try{ typed=window.prompt('¿Cómo te llamás? (lo ven los demás jugadores)')||''; }catch(e){}
+    name=typed.trim().slice(0,20)||('Jugador'+(100+Math.random()*900|0));
     try{ localStorage.setItem('cubix-name',name); }catch(e){}
   }
   const key=new URLSearchParams(location.search).get('admin')||'';
@@ -1943,6 +1944,89 @@ if(isTouch){
   // Elegir objeto tocando la barra
   hotbarEl.addEventListener('touchstart',e=>{ const s=e.target.closest('.slot'); if(!s) return; e.preventDefault(); selectSlot([...hotbarEl.children].indexOf(s)); },{passive:false});
 }
+// ================= Modo consola: Play, Xbox o tele =================
+// El navegador de la Play no deja capturar el mouse. Se juega con el mando (si el navegador lo deja leer)
+// o con botones grandes en pantalla que se aprietan con el cursor de la consola:
+// tocar una flecha la deja prendida hasta que la tocás de nuevo; los botones de mirar giran un poco por toque.
+function setupConsole(A){
+  const forced=/[?&]play\b/.test(location.search);
+  let on=forced||/PlayStation|Xbox|Nintendo|SMART-TV|SmartTV|Web0S|Tizen/i.test(navigator.userAgent);
+  try{ const v=localStorage.getItem(A.key); if(v==='1') on=true; if(v==='0'&&!forced) on=false; }catch(e){}
+  const css=document.createElement('style');
+  css.textContent='#cpad{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:0 16px 16px;pointer-events:none;z-index:6}'
+    +'#cpad .g{display:grid;gap:8px;pointer-events:auto}#cpad .mv{grid-template-columns:repeat(3,70px)}#cpad .ac{grid-template-columns:repeat(3,minmax(70px,auto))}'
+    +'#cpad button{height:70px;min-width:70px;padding:0 10px;border-radius:16px;font:700 15px system-ui,sans-serif;background:rgba(10,16,24,.68);color:#eef3f6;border:2px solid rgba(220,240,255,.3);cursor:pointer;user-select:none;-webkit-user-select:none}'
+    +'#cpad button.sm{font-size:12px}#cpad button.on{background:rgba(143,227,255,.45);border-color:#8fe3ff}'
+    +'@media (max-width:760px){#cpad button{height:52px;min-width:52px;font-size:12px}#cpad .mv{grid-template-columns:repeat(3,52px)}}';
+  document.head.appendChild(css);
+  const pad=document.createElement('div'); pad.id='cpad'; pad.hidden=true;
+  const mv=document.createElement('div'), ac=document.createElement('div'); mv.className='g mv'; ac.className='g ac'; pad.append(mv,ac); document.body.appendChild(pad);
+  const st={}, moveBtns=[];
+  function bind(b,down,up,mode){ // mode: 'latch' (queda prendido con un toque) o 'hold'
+    let t0=0, isDown=false, latched=false;
+    b.addEventListener('mousedown',e=>{ e.preventDefault(); e.stopPropagation(); if(latched){ latched=false; b.classList.remove('on'); up(false); return; }
+      isDown=true; t0=performance.now(); b.classList.add('on'); down(); });
+    const rel=()=>{ if(!isDown) return; isDown=false; const quick=performance.now()-t0<300;
+      if(quick&&mode==='latch'){ latched=true; return; } b.classList.remove('on'); up(quick); };
+    b.addEventListener('mouseup',rel); b.addEventListener('mouseleave',rel);
+    b.addEventListener('touchstart',e=>{ e.preventDefault(); b.dispatchEvent(new MouseEvent('mousedown')); },{passive:false});
+    b.addEventListener('touchend',e=>{ e.preventDefault(); rel(); },{passive:false});
+    b.unlatch=()=>{ if(latched){ latched=false; b.classList.remove('on'); up(false); } };
+  }
+  const mk=(host,label,cls)=>{ const b=document.createElement('button'); b.type='button'; b.textContent=label; if(cls) b.className=cls; host.appendChild(b); return b; };
+  const STEP={lt:[.45,0],rt:[-.45,0],up:[0,.2],dn:[0,-.2]};
+  for(const [k,label] of [['lt','⟲'],['fw','▲'],['rt','⟳'],['sl','◀'],['stop','■'],['sr','▶'],['up','Mirar ↑'],['bk','▼'],['dn','Mirar ↓']]){
+    const b=mk(mv,label,label.length>2?'sm':'');
+    if(k==='stop'){ b.addEventListener('mousedown',e=>{ e.preventDefault(); moveBtns.forEach(m=>m.unlatch()); }); continue; }
+    const look=!!STEP[k];
+    bind(b,()=>{ st[k]=true; },quick=>{ st[k]=false; if(look&&quick) A.look(STEP[k][0],STEP[k][1]); },look?'hold':'latch');
+    if(!look) moveBtns.push(b);
+  }
+  for(const a of A.actions){ const b=mk(ac,a.label,a.label.length>8?'sm':'');
+    if(a.tap) b.addEventListener('mousedown',e=>{ e.preventDefault(); e.stopPropagation(); a.tap(); });
+    else bind(b,a.down,quick=>{ if(quick) setTimeout(a.up,150); else a.up(); },a.latch?'latch':'hold'); }
+  // Botón en el menú para prenderlo o apagarlo a mano
+  const tb=document.createElement('button'); tb.type='button';
+  const lab=()=>{ tb.textContent='Modo Play / mando: '+(on?'sí':'no'); }; lab();
+  tb.onclick=()=>{ on=!on; try{ localStorage.setItem(A.key,on?'1':'0'); }catch(e){} lab(); };
+  if(A.menuHost) A.menuHost.appendChild(tb);
+  let padSeen=false, prev=[];
+  function frame(dt){
+    let mx=(st.sr?1:0)-(st.sl?1:0), my=(st.bk?1:0)-(st.fw?1:0), lx=(st.rt?1:0)-(st.lt?1:0), ly=(st.dn?1:0)-(st.up?1:0);
+    let list=[]; try{ list=navigator.getGamepads?[...navigator.getGamepads()]:[]; }catch(e){}
+    const gp=list.find(g=>g&&g.connected!==false&&g.buttons&&g.buttons.length>9);
+    if(gp){ const cur=gp.buttons.map(x=>!!(x&&(x.pressed||x.value>.5))), dz=v=>Math.abs(v||0)<.2?0:v;
+      if(!padSeen&&(cur.some(Boolean)||gp.axes.some(v=>Math.abs(v)>.5))){ padSeen=true; A.toast('Mando detectado: ya podés jugar con el joystick'); }
+      mx+=dz(gp.axes[0])+(cur[15]?1:0)-(cur[14]?1:0); my+=dz(gp.axes[1])+(cur[13]?1:0)-(cur[12]?1:0); lx+=dz(gp.axes[2]); ly+=dz(gp.axes[3]);
+      for(const m of A.gamepad){ const now=cur[m.b], was=!!prev[m.b]; if(now&&!was) (m.down||m.tap)(); else if(!now&&was&&m.up) m.up(); }
+      prev=cur; }
+    pad.hidden=!(on&&!padSeen&&A.playing());
+    if(!(on||padSeen)||!A.playing()) return;
+    A.setStick(Math.max(-1,Math.min(1,mx)),Math.max(-1,Math.min(1,my)));
+    if(lx||ly) A.look(-lx*2.6*dt,-ly*1.9*dt);
+  }
+  return {frame,get on(){ return on||padSeen; }};
+}
+function pauseGame(){ playing=false; mouseL=mouseR=false; menu.hidden=false; document.getElementById('play').textContent='Seguir jugando'; }
+const consoleUI=setupConsole({key:'cubix-play',menuHost:document.querySelector('#menu .btns'),toast,
+  playing:()=>playing&&!invOpen&&deadEl.hidden&&menu.hidden,
+  setStick:(x,y)=>{ stickX=x; stickY=y; },
+  look:(dy,dp)=>{ player.yaw+=dy; player.pitch=Math.max(-1.55,Math.min(1.55,player.pitch+dp)); },
+  actions:[{label:'Romper',down:()=>{ mouseL=true; strike=true; },up:()=>{ mouseL=false; resetMine(); }},
+    {label:'Poner',down:()=>{ mouseR=true; secondaryAction(true); actCd=.35; },up:()=>{ mouseR=false; }},
+    {label:'Saltar',down:()=>{ keys.Space=true; },up:()=>{ keys.Space=false; }},
+    {label:'Correr',latch:true,down:()=>{ touchRun=true; },up:()=>{ touchRun=false; }},
+    {label:'Objeto ◀',tap:()=>selectSlot(selected-1)},{label:'Objeto ▶',tap:()=>selectSlot(selected+1)},
+    {label:'Inventario',tap:()=>openInv()},{label:'Pausa',tap:pauseGame}],
+  // Mando: R2 romper · L2 poner · X saltar · L3 correr · L1/R1 objeto · triángulo inventario · círculo cerrar · Options pausa
+  gamepad:[{b:7,down:()=>{ if(playing&&!invOpen){ mouseL=true; strike=true; } },up:()=>{ mouseL=false; resetMine(); }},
+    {b:6,down:()=>{ if(playing&&!invOpen){ mouseR=true; secondaryAction(true); actCd=.35; } },up:()=>{ mouseR=false; }},
+    {b:0,down:()=>{ keys.Space=true; },up:()=>{ keys.Space=false; }},
+    {b:10,tap:()=>{ touchRun=!touchRun; }},
+    {b:4,tap:()=>selectSlot(selected-1)},{b:5,tap:()=>selectSlot(selected+1)},
+    {b:3,tap:()=>{ if(invOpen) closeInv(); else if(playing) openInv(); }},
+    {b:1,tap:()=>{ if(invOpen) closeInv(); }},
+    {b:9,tap:()=>{ if(playing&&menu.hidden) pauseGame(); else if(!document.getElementById('play').disabled) document.getElementById('play').click(); }}]});
 renderHotbar(); updateOnline();
 { const pb=document.getElementById('play'); pb.disabled=false; pb.textContent=shared?'Jugar en el mundo compartido':'Jugar'; }
 
@@ -1980,6 +2064,7 @@ function updateChunks(){
 }
 function loop(now){
   const dt=Math.min(.05,(now-last)/1000); last=now;
+  consoleUI.frame(dt);
   if(playing) update(dt);
   updateChunks();
   render(dt);
