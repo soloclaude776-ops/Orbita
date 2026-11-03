@@ -1529,7 +1529,11 @@ function update(dt){
     player.vel.y-=GRAV*.25*dt; if(keys.Space) player.vel.y=Math.min(player.vel.y+22*dt,3.2); player.vel.y=Math.max(player.vel.y,-3);
   } else { if(keys.Space&&player.onGround) player.vel.y=9; player.vel.y-=GRAV*dt; if(player.vel.y<-40) player.vel.y=-40; }
   const wasGround=player.onGround;
-  moveEntity(player,dt);
+  const mr=moveEntity(player,dt);
+  // Salir del agua o la lava: si nadás contra la orilla, el personaje trepa el borde
+  if(inLiq&&(mr.hitX||mr.hitZ)&&(keys.Space||wish.lengthSq()>0)) player.vel.y=Math.max(player.vel.y,6.5);
+  // En la superficie, Espacio da un salto para salir
+  else if(inLiq&&keys.Space&&!isLiquid(chest)) player.vel.y=Math.max(player.vel.y,5);
   // Daño por caída: desde 4 bloques; caer al agua no lastima
   if(inLiq||player.onGround&&wasGround) player.fallFrom=player.pos.y;
   else if(!player.onGround) player.fallFrom=Math.max(player.fallFrom??player.pos.y,player.pos.y);
