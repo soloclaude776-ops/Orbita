@@ -785,6 +785,7 @@ function loadRealModels() {
   loadModel('habitat').then(g => {
     habTpl = g;
     for (const [, o] of bObjs) if (o.b.k === 'hab') swapHab(o);
+    for (const [, o] of bObjs) swapAny(o);
   }).catch(e => console.warn('habitat', e));
 }
 function swapHab(o) {
@@ -802,6 +803,48 @@ function updLanding() {
   landingDone = true;
   loadModel('perseverance').then(g => { const m = fitModel(g.scene, { length: 3.0 }); m.position.set(LANDING.x, H(LANDING.x, LANDING.z), LANDING.z); m.rotation.y = 2.2; scene.add(m); pads.push({ x: LANDING.x, z: LANDING.z, r: 0.1, h: H(LANDING.x, LANDING.z) }); boulders.push({ x: LANDING.x, z: LANDING.z, r: 1.6, h: 2 }); }).catch(() => { });
   loadModel('ingenuity').then(g => { const m = fitModel(g.scene, { height: 0.49 }); const x = LANDING.x + 9, z = LANDING.z - 6; m.position.set(x, H(x, z), z); scene.add(m); }).catch(() => { });
+}
+
+// ---------- construcciones con modelos reales ----------
+const BMODEL = {
+  moxie: { f: 'generador', len: 2.6 },
+  bat: { f: 'bateria', h: 1.8 },
+  crew: { f: 'habitat', len: 8.5, white: true }
+};
+function whiten(m) { m.traverse(c => { if (c.isMesh) c.material = new THREE.MeshStandardMaterial({ color: 0xe9e4da, roughness: 0.55, metalness: 0.15, normalMap: c.material.normalMap || null }); }); }
+function swapAny(o) {
+  if (o.b.k === 'hab') { swapHab(o); addProps(o); return; }
+  if (o.b.k === 'green') { fillGreenhouse(o); return; }
+  const d = BMODEL[o.b.k]; if (!d || !gltfLoader) return;
+  loadModel(d.f).then(g => {
+    if (o.g.userData.real || !o.g.parent) return;
+    const m = fitModel(g.scene.clone(), d.len ? { length: d.len } : { height: d.h });
+    if (d.white) whiten(m);
+    o.g.children.forEach(c => { if (c.isMesh || (c.isGroup && c !== m)) c.visible = false; });
+    if (d.keepGlow && o.g.userData.glow) { o.g.userData.glow.visible = true; o.g.userData.glow.position.y = d.keepGlow; }
+    o.g.add(m); o.g.userData.real = true;
+  }).catch(() => { });
+}
+// cosas sueltas alrededor del hábitat: tanques, bidones, cajones
+const PROPS = [['tanque', 1.6, 2.2, 0.3], ['tanque', 1.6, 1.4, 0.5], ['bidon', 1, 2.9, 1.1], ['contenedor', 1, -2.6, 3.2], ['cajon', 1, -1.6, 3.6], ['cajon', 1, -1.7, 3.4, 0.5], ['bidon', 1, -3.4, -2.2]];
+function addProps(o) {
+  if (o.g.userData.props || !gltfLoader) return; o.g.userData.props = true;
+  PROPS.forEach(([f, s, x, z, up], i) => loadModel(f).then(g => {
+    const m = g.scene.clone(); m.scale.setScalar(s); const box = new THREE.Box3().setFromObject(m);
+    m.position.set(x * 1.6 + 1.5, -box.min.y + (up ? 0.32 : 0), z * 1.4 + 5.5); m.rotation.y = i * 1.7;
+    o.g.add(m);
+  }).catch(() => { }));
+}
+// canteros con plantas de verdad adentro de la cúpula
+function fillGreenhouse(o) {
+  if (o.g.userData.real || !gltfLoader) return; o.g.userData.real = true;
+  o.g.children.forEach(c => { if (c.isMesh && c.material === MAT.plant) c.visible = false; });
+  Promise.all([loadModel('cantero'), loadModel('planta')]).then(([c, p]) => {
+    for (let i = 0; i < 3; i++) {
+      const b = c.scene.clone(); b.scale.setScalar(1.6); b.position.set(-1.9 + i * 1.9, 0.4, 0); b.rotation.y = Math.PI / 2; o.g.add(b);
+      for (let j = -1; j <= 1; j++) { const q = p.scene.clone(); q.scale.setScalar(1.3); q.position.set(-1.9 + i * 1.9, 1.05, j * 0.65); q.rotation.y = i + j; o.g.add(q); }
+    }
+  }).catch(() => { });
 }
 
 // ===================== juego =====================
@@ -909,7 +952,7 @@ function applyColony(full) {
   for (const b of colony.b) {
     seen.add(b.id);
     let o = bObjs.get(b.id);
-    if (!o) { const g = makeBuilding(b.k); scene.add(g); o = { g, b }; bObjs.set(b.id, o); if (b.k === 'hab') swapHab(o); }
+    if (!o) { const g = makeBuilding(b.k); scene.add(g); o = { g, b }; bObjs.set(b.id, o); swapAny(o); }
     o.b = b; if (b.y == null) b.y = H(b.x, b.z);
     o.g.position.set(b.x, b.y, b.z); o.g.rotation.y = b.r;
   }
