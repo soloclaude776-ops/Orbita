@@ -27,7 +27,17 @@ const PUB = fs.existsSync(path.join(__dirname, 'dist', 'cubix.html')) ? 'dist' :
 const html = fs.readFileSync(path.join(__dirname, PUB, 'index.html'));
 const PAGES = {};
 for (const f of fs.readdirSync(path.join(__dirname, PUB))) { const m = /^([a-z0-9]+)\.html$/.exec(f); if (m && m[1] !== 'index') PAGES[m[1]] = fs.readFileSync(path.join(__dirname, PUB, f)); }
+for (const id of Object.keys(PAGES)) PAGES[id] = withIcon(String(PAGES[id]), fs.existsSync(path.join(__dirname, 'public', 'logos', id + '.svg')) ? id : 'orbita');
 PAGES.test = fs.readFileSync(path.join(__dirname, 'public', 'test.html'));
+function withIcon(h, id) {
+  if (h.indexOf('rel="icon"') >= 0) return h;
+  const tag = '<link rel="icon" type="image/svg+xml" href="/logos/' + id + '.svg">';
+  const i = h.toLowerCase().indexOf('<head>');
+  if (i >= 0) return h.slice(0, i + 6) + tag + h.slice(i + 6);
+  const d = h.toLowerCase().indexOf('<!doctype html>');
+  if (d >= 0) return h.slice(0, d + 15) + tag + h.slice(d + 15);
+  return tag + h;
+}
 // Lista para la plataforma: los datos de juegos.json más cualquier juego nuevo que todavía no esté anotado
 function gameList() {
   let meta = { juegos: [] };
@@ -38,6 +48,7 @@ function gameList() {
     meta.juegos.unshift({ id, titulo: t.trim(), desc: 'Juego nuevo.', tags: [], nuevo: true });
   }
   meta.juegos = meta.juegos.filter(j => PAGES[j.id]);
+  for (const j of meta.juegos) j.logo = fs.existsSync(path.join(__dirname, 'public', 'logos', j.id + '.svg')) ? '/logos/' + j.id + '.svg' : null;
   for (const j of meta.juegos) j.portada = fs.existsSync(path.join(__dirname, 'public', 'portadas', j.id + '.jpg')) ? '/portadas/' + j.id + '.jpg' : null;
   return meta;
 }
@@ -46,6 +57,8 @@ const server = http.createServer((req, res) => {
   if (handleAi(req, res)) return;
   if (req.url.split('?')[0] === '/api/juegos') { res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-cache' }); res.end(JSON.stringify(gameList())); return; }
   const pf = /^\/portadas\/([a-z0-9]+)\.jpg$/.exec(req.url.split('?')[0]);
+  const lf = req.url.split('?')[0].split('/');
+  if (lf.length === 3 && lf[1] === 'logos' && /^[a-z0-9]+.svg$/.test(lf[2])) { const f = path.join(__dirname, 'public', 'logos', lf[2]); if (fs.existsSync(f)) { res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=3600' }); fs.createReadStream(f).pipe(res); return; } }
   if (pf) { const f = path.join(__dirname, 'public', 'portadas', pf[1] + '.jpg'); if (fs.existsSync(f)) { res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=3600' }); fs.createReadStream(f).pipe(res); return; } }
   // terreno real y texturas de JEZERO
   const mf = /^\/marte\/((?:tex\/|modelos\/)?[a-z0-9_]+\.(?:jpg|txt))$/.exec(req.url.split('?')[0]);

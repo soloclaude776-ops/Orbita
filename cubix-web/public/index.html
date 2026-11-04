@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Órbita</title>
 <meta name="description" content="Plataforma con todos nuestros juegos para jugar en el navegador.">
+<link rel="icon" type="image/svg+xml" href="/logos/orbita.svg">
 <style>
 :root{--bg:#07080d;--bg2:#10121b;--card:#151826;--line:rgba(255,255,255,.08);--fg:#f2f3f8;--dim:#9aa0b8;--acc:#ff7a33;--acc2:#7c5cff;--ok:#5fd38d;--warn:#ffb547}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#07080d}}
@@ -18,8 +19,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .top{position:sticky;top:0;z-index:20;background:rgba(7,8,13,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;height:64px}
 .logo{display:flex;align-items:center;font-weight:900;letter-spacing:.22em;font-size:20px}
-.logo i{width:30px;height:30px;border-radius:50%;margin-right:12px;background:radial-gradient(circle at 35% 35%,#ffb98a,#ff7a33 45%,#7c2d12 75%);box-shadow:0 0 0 3px rgba(124,92,255,.35),0 0 24px rgba(255,122,51,.45);position:relative}
-.logo i:after{content:"";position:absolute;left:-8px;top:12px;width:46px;height:7px;border-radius:50%;border:2px solid rgba(190,175,255,.75);transform:rotate(-18deg)}
+.logo img{width:40px;height:40px;margin-right:10px;filter:drop-shadow(0 0 10px rgba(255,122,51,.45))}
+.gl{width:38px;height:38px;border-radius:10px;margin-right:10px;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+.ht{display:flex;align-items:center}
+.ht .gl{width:64px;height:64px;border-radius:16px;margin-right:16px}
+.body .tt{display:flex;align-items:center;margin-bottom:8px}
+.body .tt .s{margin:2px 0 0}
 .search{margin-left:auto;display:flex;align-items:center;background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:0 14px;height:40px;width:min(320px,45vw)}
 .search input{flex:1;background:none;border:0;outline:0;color:var(--fg);font:inherit;min-width:0}
 .search svg{width:16px;height:16px;margin-right:8px;opacity:.6;flex:none}
@@ -64,7 +69,7 @@ footer{color:var(--dim);font-size:13px;border-top:1px solid var(--line);margin-t
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <a class="logo" href="/"><i></i><span id="brand">ÓRBITA</span></a>
+  <a class="logo" href="/"><img src="/logos/orbita.svg" alt=""><span id="brand">ÓRBITA</span></a>
   <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" placeholder="Buscar juego…" autocomplete="off"></label>
 </div></header>
 <main class="wrap">
@@ -89,7 +94,7 @@ footer{color:var(--dim);font-size:13px;border-top:1px solid var(--line);margin-t
     return '<article class="card"><a href="/' + j.id + '" data-id="' + j.id + '" class="cover" style="background-image:' + fondo(j) + '">' +
       (j.nuevo ? '<span class="badge">NUEVO</span>' : '') + (noAnda(j) ? '<span class="badge no">No anda en este navegador</span>' : '') +
       (j.portada ? '' : '<b>' + esc(j.titulo) + '</b>') + '</a>' +
-      '<div class="body"><h3>' + esc(j.titulo) + '</h3><div class="s">' + esc(j.sub || '') + '</div><p>' + esc(j.desc) + '</p>' +
+      '<div class="body"><div class="tt">' + (j.logo ? '<img class="gl" src="' + j.logo + '" alt="">' : '') + '<div><h3>' + esc(j.titulo) + '</h3><div class="s">' + esc(j.sub || '') + '</div></div></div><p>' + esc(j.desc) + '</p>' +
       '<div class="tags">' + (j.tags || []).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div>' +
       '<a class="play" href="/' + j.id + '" data-id="' + j.id + '">' + ICON + 'Jugar</a></div></article>';
   }
@@ -108,7 +113,7 @@ footer{color:var(--dim);font-size:13px;border-top:1px solid var(--line);margin-t
     var d = data.juegos.filter(function (j) { return j.id === data.destacado; })[0] || data.juegos[0];
     if (d) {
       var h = document.getElementById('hero'); h.style.backgroundImage = fondo(d);
-      h.innerHTML = '<div class="in"><span class="kicker">' + (d.nuevo ? 'Nuevo · ' : '') + 'Destacado</span><h1>' + esc(d.titulo) + '</h1><div class="sub">' + esc(d.sub || '') + '</div><p>' + esc(d.desc) + '</p>' +
+      h.innerHTML = '<div class="in"><span class="kicker">' + (d.nuevo ? 'Nuevo · ' : '') + 'Destacado</span><div class="ht">' + (d.logo ? '<img class="gl" src="' + d.logo + '" alt="">' : '') + '<h1>' + esc(d.titulo) + '</h1></div><div class="sub">' + esc(d.sub || '') + '</div><p>' + esc(d.desc) + '</p>' +
         '<div class="tags" style="margin-bottom:18px">' + (d.tags || []).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div>' +
         (noAnda(d) ? '<p style="color:var(--warn)">Este juego es 3D y este navegador no lo puede mostrar.</p>' : '') +
         '<a class="play" href="/' + d.id + '" data-id="' + d.id + '">' + ICON + 'Jugar ahora</a></div>';
