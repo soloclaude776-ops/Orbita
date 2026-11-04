@@ -21,19 +21,36 @@ function save() {
 }
 
 // dist/ tiene las páginas traducidas para navegadores viejos como el de la Play (las arma build.js); si no está, se usan las originales
-const PUB = fs.existsSync(path.join(__dirname, 'dist', 'eter.html')) ? 'dist' : 'public';
+const PUB = fs.existsSync(path.join(__dirname, 'dist', 'cubix.html')) ? 'dist' : 'public';
+// La página principal es la plataforma con todos los juegos.
+// Cada juego vive en su dirección (/cubix, /eter, /marte...): alcanza con poner nombre.html en public/ y aparece solo.
 const html = fs.readFileSync(path.join(__dirname, PUB, 'index.html'));
-// Los otros juegos viven en su propia dirección: /eter, /comarca, /eco, /farol, /isla, /marte (y /test prueba qué soporta el navegador)
 const PAGES = {};
-for (const name of ['eter', 'comarca', 'eco', 'farol', 'isla', 'marte']) PAGES[name] = fs.readFileSync(path.join(__dirname, PUB, name + '.html'));
+for (const f of fs.readdirSync(path.join(__dirname, PUB))) { const m = /^([a-z0-9]+)\.html$/.exec(f); if (m && m[1] !== 'index') PAGES[m[1]] = fs.readFileSync(path.join(__dirname, PUB, f)); }
 PAGES.test = fs.readFileSync(path.join(__dirname, 'public', 'test.html'));
+// Lista para la plataforma: los datos de juegos.json más cualquier juego nuevo que todavía no esté anotado
+function gameList() {
+  let meta = { juegos: [] };
+  try { meta = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'juegos.json'), 'utf8')); } catch (e) { /* sin datos extra */ }
+  const known = new Set(meta.juegos.map(j => j.id));
+  for (const id of Object.keys(PAGES)) if (id !== 'test' && !known.has(id)) {
+    const t = (/<title>([^<]*)/.exec(String(PAGES[id])) || [])[1] || id;
+    meta.juegos.unshift({ id, titulo: t.trim(), desc: 'Juego nuevo.', tags: [], nuevo: true });
+  }
+  meta.juegos = meta.juegos.filter(j => PAGES[j.id]);
+  for (const j of meta.juegos) j.portada = fs.existsSync(path.join(__dirname, 'public', 'portadas', j.id + '.jpg')) ? '/portadas/' + j.id + '.jpg' : null;
+  return meta;
+}
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.end('ok'); return; }
   if (handleAi(req, res)) return;
+  if (req.url.split('?')[0] === '/api/juegos') { res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-cache' }); res.end(JSON.stringify(gameList())); return; }
+  const pf = /^\/portadas\/([a-z0-9]+)\.jpg$/.exec(req.url.split('?')[0]);
+  if (pf) { const f = path.join(__dirname, 'public', 'portadas', pf[1] + '.jpg'); if (fs.existsSync(f)) { res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=3600' }); fs.createReadStream(f).pipe(res); return; } }
   // terreno real y texturas de JEZERO
   const mf = /^\/marte\/((?:tex\/|modelos\/)?[a-z0-9_]+\.(?:jpg|txt))$/.exec(req.url.split('?')[0]);
   if (mf) { const f = path.join(__dirname, 'public', 'marte', mf[1]); if (fs.existsSync(f)) { res.writeHead(200, { 'content-type': f.endsWith('.jpg') ? 'image/jpeg' : 'text/plain', 'cache-control': 'public, max-age=86400' }); fs.createReadStream(f).pipe(res); return; } }
-  const page = (/^\/([a-z]+)\/?(\?.*)?$/i.exec(req.url) || [])[1];
+  const page = (/^\/([a-z0-9]+)\/?(\?.*)?$/i.exec(req.url) || [])[1];
   if (page && PAGES[page.toLowerCase()]) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(PAGES[page.toLowerCase()]); return; }
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
   res.end(html);

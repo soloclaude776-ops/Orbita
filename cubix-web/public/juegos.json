@@ -1,0 +1,14 @@
+{
+  "nombre": "ÓRBITA",
+  "lema": "Todos nuestros juegos, en un solo lugar",
+  "destacado": "marte",
+  "juegos": [
+    { "id": "marte", "titulo": "JEZERO", "sub": "Colonia en Marte", "desc": "Sobreviví y construí una colonia sobre el cráter Jezero real, medido por la NASA. Rover presurizado, robots mineros, tormentas de polvo y misiones que no se terminan nunca.", "tags": ["3D", "Multijugador", "Supervivencia", "Construcción"], "motor": "3d", "nuevo": true },
+    { "id": "isla", "titulo": "Última Isla", "sub": "Batalla en una isla", "desc": "Caé en paracaídas, juntá madera y piedra, construí defensas y peleá contra 15 rivales con IA mientras se cierra la tormenta.", "tags": ["3D", "Acción", "Construcción"], "motor": "3d" },
+    { "id": "farol", "titulo": "FAROL", "sub": "Aguantá hasta el amanecer", "desc": "Sos el guardián de un farol. Elegí mejoras, combiná armas y sobreviví a las oleadas de la noche.", "tags": ["2D", "Acción", "Roguelite"], "motor": "2d" },
+    { "id": "eco", "titulo": "ECO", "sub": "Plataformas con bucles de tiempo", "desc": "Cada vuelta deja un eco que repite lo que hiciste. Usá tus propios ecos para resolver cada sala.", "tags": ["2D", "Puzle", "Plataformas"], "motor": "2d" },
+    { "id": "comarca", "titulo": "Comarca", "sub": "Mundo abierto medieval", "desc": "Recorré una isla de regiones, juntá recursos a mano, fundá aldeas y ciudades y competí con señores rivales.", "tags": ["3D", "Estrategia", "Mundo abierto"], "motor": "3d" },
+    { "id": "eter", "titulo": "Éter", "sub": "Islas flotantes", "desc": "Excavá con pala, aguantá rayos y meteoritos, y conocé personajes con IA que creen que su mundo es real.", "tags": ["3D", "IA", "Exploración"], "motor": "3d" },
+    { "id": "cubix", "titulo": "Cubix", "sub": "Mundo de bloques", "desc": "Construí y explorá un mundo de bloques compartido con todos los que estén conectados.", "tags": ["3D", "Multijugador", "Construcción"], "motor": "3d" }
+  ]
+}
