@@ -22,9 +22,9 @@ function save() {
 // dist/ tiene las páginas traducidas para navegadores viejos como el de la Play (las arma build.js); si no está, se usan las originales
 const PUB = fs.existsSync(path.join(__dirname, 'dist', 'eter.html')) ? 'dist' : 'public';
 const html = fs.readFileSync(path.join(__dirname, PUB, 'index.html'));
-// Los otros juegos viven en su propia dirección: /eter, /comarca, /eco, /farol (y /test prueba qué soporta el navegador)
+// Los otros juegos viven en su propia dirección: /eter, /comarca, /eco, /farol, /isla (y /test prueba qué soporta el navegador)
 const PAGES = {};
-for (const name of ['eter', 'comarca', 'eco', 'farol']) PAGES[name] = fs.readFileSync(path.join(__dirname, PUB, name + '.html'));
+for (const name of ['eter', 'comarca', 'eco', 'farol', 'isla']) PAGES[name] = fs.readFileSync(path.join(__dirname, PUB, name + '.html'));
 PAGES.test = fs.readFileSync(path.join(__dirname, 'public', 'test.html'));
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.end('ok'); return; }
