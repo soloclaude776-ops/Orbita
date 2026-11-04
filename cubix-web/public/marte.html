@@ -479,9 +479,9 @@ const MAT = {
 };
 // panel solar con celdas dibujadas
 MAT.solar = new THREE.MeshStandardMaterial({ roughness: 0.25, metalness: 0.6, map: (() => {
-  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
-  x.fillStyle = '#0d1a33'; x.fillRect(0, 0, 128, 128); x.strokeStyle = '#8899aa'; x.lineWidth = 2;
-  for (let i = 0; i <= 128; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); x.beginPath(); x.moveTo(0, i); x.lineTo(128, i); x.stroke(); }
+  const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
+  x.fillStyle = '#c9ccd1'; x.fillRect(0, 0, 512, 512);
+  for (let j = 0; j < 10; j++) for (let i = 0; i < 6; i++) { const X = 6 + i * 84, Y = 4 + j * 50.6, g = x.createLinearGradient(X, Y, X + 80, Y + 48); g.addColorStop(0, '#0b1730'); g.addColorStop(0.5, '#13254a'); g.addColorStop(1, '#0a142a'); x.fillStyle = g; x.fillRect(X, Y, 80, 47); x.fillStyle = 'rgba(190,200,215,.55)'; x.fillRect(X + 26, Y, 1.5, 47); x.fillRect(X + 53, Y, 1.5, 47); x.fillStyle = 'rgba(255,255,255,.04)'; for (let k = 0; k < 47; k += 3) x.fillRect(X, Y + k, 80, 1); }
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; })() });
 MAT.dusty = MAT.solar.clone(); // se tiñe con el polvo
 
@@ -600,8 +600,12 @@ function makeBuilding(k) {
     g.add(cyl(0.12, 0.18, 5, MAT.metal, 0, 2.5, 0, 8));
     const h = new THREE.Group(); h.position.y = 5; const dish = new THREE.Mesh(new THREE.SphereGeometry(1.4, 16, 8, 0, 6.28, 0, 1.1), MAT.white); dish.rotation.x = -2.1; dish.castShadow = true; h.add(dish); h.add(cyl(0.03, 0.03, 1.3, MAT.metal, 0, 0.5, 0.6, 4)); g.add(h); u.spin = h;
   } else if (k === 'lamp') {
-    g.add(cyl(0.07, 0.1, 4, MAT.metal, 0, 2, 0, 6)); const hd = box(0.5, 0.25, 0.5, MAT.lampH, 0, 4.05, 0); g.add(hd); u.lights.push(hd);
-    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffd8a0, map: puffMat.map, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); glow.position.y = 4; glow.scale.setScalar(5); g.add(glow); u.glow = glow;
+    // torre de luz: base con patas, mástil y 4 reflectores
+    g.add(box(1.3, 0.5, 0.9, MAT.hull, 0, 0.45, 0)); g.add(box(1.32, 0.08, 0.92, MAT.stripe, 0, 0.62, 0));
+    for (const [x, z] of [[-0.9, -0.7], [0.9, -0.7], [-0.9, 0.7], [0.9, 0.7]]) { const l = cyl(0.03, 0.03, 1.3, MAT.metal, x * 0.6, 0.25, z * 0.6, 5); l.rotation.z = -x * 0.9; l.rotation.x = z * 0.9; g.add(l); }
+    g.add(cyl(0.06, 0.08, 4.1, MAT.metal, 0, 2.7, 0, 8)); g.add(box(1.5, 0.07, 0.07, MAT.metal, 0, 4.7, 0));
+    for (const x of [-0.6, -0.2, 0.2, 0.6]) { const h = box(0.32, 0.26, 0.12, MAT.dark, x, 4.5, 0.08); h.rotation.x = 0.35; g.add(h); const f = box(0.27, 0.21, 0.02, MAT.lampH, x, 4.5, 0.15); f.rotation.x = 0.35; g.add(f); u.lights.push(f); }
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffd8a0, map: puffMat.map, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); glow.position.set(0, 4.5, 0.3); glow.scale.setScalar(5); g.add(glow); u.glow = glow;
   } else if (k === 'pad') {
     g.add(box(6, 0.3, 6, MAT.suitD, 0, 0.15, 0)); g.add(box(4.5, 0.02, 0.3, MAT.stripe, 0, 0.31, 0)); g.add(box(0.3, 0.02, 4.5, MAT.stripe, 0, 0.31, 0));
   } else if (k === 'wall') {
@@ -668,6 +672,7 @@ function refreshNodes(px, pz) {
 
 // ---------- robots y colonos ----------
 function makeBot() {
+  if (typeof rassorTpl !== 'undefined' && rassorTpl) { const r = fitModel(rassorTpl.scene.clone(), { length: 1.7 }); r.traverse(c => { if (c.isMesh) c.castShadow = true; }); return r; }
   const g = new THREE.Group(); g.add(box(0.9, 0.45, 1.2, MAT.hull, 0, 0.5, 0)); g.add(box(0.5, 0.3, 0.4, MAT.dark, 0, 0.88, 0.3));
   const eye = box(0.3, 0.08, 0.04, MAT.lampH, 0, 0.9, 0.51); eye.material = MAT.lampH; g.add(eye);
   for (const [x, z] of [[-0.5, -0.4], [0.5, -0.4], [-0.5, 0.4], [0.5, 0.4]]) { const w = cyl(0.22, 0.22, 0.14, MAT.tire, x, 0.22, z, 10); w.rotation.z = Math.PI / 2; g.add(w); }
@@ -782,6 +787,7 @@ function loadRealModels() {
     const m = fitModel(g.scene, { length: 5.9 }); rover.body.visible = false; rover.wheels.forEach(w => w.visible = false); rover.g.add(m);
     for (const id in net.peers) { const p = net.peers[id]; p.r.body.visible = false; p.r.wheels.forEach(w => w.visible = false); p.r.g.add(fitModel(g.scene.clone(), { length: 5.9 })); }
   }).catch(e => console.warn('rover', e));
+  loadRobots();
   loadModel('habitat').then(g => {
     habTpl = g;
     for (const [, o] of bObjs) if (o.b.k === 'hab') swapHab(o);
@@ -815,6 +821,8 @@ function whiten(m) { m.traverse(c => { if (c.isMesh) c.material = new THREE.Mesh
 function swapAny(o) {
   if (o.b.k === 'hab') { swapHab(o); addProps(o); return; }
   if (o.b.k === 'green') { fillGreenhouse(o); return; }
+  if (o.b.k === 'ant') { swapAntenna(o); return; }
+  if (o.b.k === 'lab') { swapLab(o); return; }
   const d = BMODEL[o.b.k]; if (!d || !gltfLoader) return;
   loadModel(d.f).then(g => {
     if (o.g.userData.real || !o.g.parent) return;
@@ -844,6 +852,33 @@ function fillGreenhouse(o) {
       const b = c.scene.clone(); b.scale.setScalar(1.6); b.position.set(-1.9 + i * 1.9, 0.4, 0); b.rotation.y = Math.PI / 2; o.g.add(b);
       for (let j = -1; j <= 1; j++) { const q = p.scene.clone(); q.scale.setScalar(1.3); q.position.set(-1.9 + i * 1.9, 1.05, j * 0.65); q.rotation.y = i + j; o.g.add(q); }
     }
+  }).catch(() => { });
+}
+
+// ---------- antena de espacio profundo (NASA), laboratorio y robots RASSOR (NASA) ----------
+let rassorTpl = null;
+function swapAntenna(o) {
+  if (o.g.userData.real || !gltfLoader) return; o.g.userData.real = true;
+  Promise.all([loadModel('antena_poste'), loadModel('antena_plato')]).then(([p, d]) => {
+    const post = fitModel(p.scene.clone(), { height: 4.6 }); whiten(post);
+    const dish = fitModel(d.scene.clone(), { length: 3.6 }); whiten(dish); dish.rotation.x = -0.75;
+    o.g.children.forEach(c => { if (c.isMesh) c.visible = false; });
+    const head = o.g.userData.spin; if (head) { head.children.forEach(c => c.visible = false); head.position.y = 4.5; head.add(dish); }
+    o.g.add(post);
+  }).catch(() => { o.g.userData.real = false; });
+}
+function swapLab(o) {
+  if (o.g.userData.real || !gltfLoader) return; o.g.userData.real = true;
+  loadModel('habitat').then(g => {
+    const m = fitModel(g.scene.clone(), { length: 6.5 }); whiten(m);
+    o.g.children.forEach(c => { if (c.isMesh && c.material !== MAT.glass) c.visible = false; if (c.isMesh && c.material === MAT.glass) { c.position.set(0, 3.4, 0); c.scale.setScalar(0.9); } });
+    o.g.add(m);
+  }).catch(() => { o.g.userData.real = false; });
+}
+function loadRobots() {
+  loadModel('robot').then(g => {
+    rassorTpl = g;
+    for (const b of bots) { scene.remove(b.g); b.g = makeBot(); scene.add(b.g); }
   }).catch(() => { });
 }
 
