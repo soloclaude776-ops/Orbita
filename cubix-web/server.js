@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 const handleAi = require('./ai'); // los personajes de Éter piensan con IA
+const marte = require('./marte'); // JEZERO: colonias en Marte compartidas
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = process.env.ADMIN_KEY || '';           // clave para poder hacer "Mundo nuevo"
@@ -22,20 +23,27 @@ function save() {
 // dist/ tiene las páginas traducidas para navegadores viejos como el de la Play (las arma build.js); si no está, se usan las originales
 const PUB = fs.existsSync(path.join(__dirname, 'dist', 'eter.html')) ? 'dist' : 'public';
 const html = fs.readFileSync(path.join(__dirname, PUB, 'index.html'));
-// Los otros juegos viven en su propia dirección: /eter, /comarca, /eco, /farol, /isla (y /test prueba qué soporta el navegador)
+// Los otros juegos viven en su propia dirección: /eter, /comarca, /eco, /farol, /isla, /marte (y /test prueba qué soporta el navegador)
 const PAGES = {};
-for (const name of ['eter', 'comarca', 'eco', 'farol', 'isla']) PAGES[name] = fs.readFileSync(path.join(__dirname, PUB, name + '.html'));
+for (const name of ['eter', 'comarca', 'eco', 'farol', 'isla', 'marte']) PAGES[name] = fs.readFileSync(path.join(__dirname, PUB, name + '.html'));
 PAGES.test = fs.readFileSync(path.join(__dirname, 'public', 'test.html'));
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.end('ok'); return; }
   if (handleAi(req, res)) return;
+  // terreno real y texturas de JEZERO
+  const mf = /^\/marte\/((?:tex\/)?[a-z_]+\.(?:jpg|bin))$/.exec(req.url.split('?')[0]);
+  if (mf) { const f = path.join(__dirname, 'public', 'marte', mf[1]); if (fs.existsSync(f)) { res.writeHead(200, { 'content-type': f.endsWith('.jpg') ? 'image/jpeg' : 'application/octet-stream', 'cache-control': 'public, max-age=86400' }); fs.createReadStream(f).pipe(res); return; } }
   const page = (/^\/([a-z]+)\/?(\?.*)?$/i.exec(req.url) || [])[1];
   if (page && PAGES[page.toLowerCase()]) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(PAGES[page.toLowerCase()]); return; }
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
   res.end(html);
 });
 
-const wss = new WebSocketServer({ server, maxPayload: 512 * 1024 });
+const wss = new WebSocketServer({ noServer: true, maxPayload: 512 * 1024 });
+server.on('upgrade', (req, socket, head) => {
+  if (req.url.startsWith('/marte-ws')) marte.handleUpgrade(req, socket, head);
+  else wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws, req));
+});
 const clients = new Map(); // ws -> { id, name, p, admin }
 let nextId = 1;
 

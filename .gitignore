@@ -2,3 +2,4 @@ node_modules/
 cubix-web/dist/
 cubix-web/test-world.json
 cubix-web/world.json
+cubix-web/marte.json
