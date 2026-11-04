@@ -112,6 +112,8 @@ body.cine #c{filter:contrast(1.07) saturate(1.06)}
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Lensflare.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script>
 'use strict';
 // ===================== JEZERO · núcleo y mundo =====================
@@ -489,6 +491,7 @@ function sph(r, m, x, y, z, ws, hs) { const o = new THREE.Mesh(new THREE.SphereG
 
 // ---------- astronauta ----------
 function makeAstro(tint) {
+  if (typeof astroTpl !== 'undefined' && astroTpl) return makeSkinnedAstro(tint);
   const g = new THREE.Group(), suit = tint ? MAT.suit.clone() : MAT.suit;
   if (tint) suit.color.setHex(tint);
   const torso = cyl(0.25, 0.22, 0.62, suit, 0, 1.17, 0); g.add(torso);
@@ -506,6 +509,7 @@ function makeAstro(tint) {
   return { g, legL, legR, armL, armR, ph: 0 };
 }
 function animAstro(a, speed, air, dt, dig) {
+  if (a.skinned) return animSkinned(a, speed, air, dt, dig);
   a.ph += dt * (2.2 + speed * 1.1);
   const s = air ? 0.35 : Math.min(1, speed / 4) * 0.75;
   a.legL.rotation.x = Math.sin(a.ph) * s; a.legR.rotation.x = -Math.sin(a.ph) * s;
@@ -671,6 +675,135 @@ function makeBot() {
   return g;
 }
 
+// ===================== modelos 3D reales: NASA (rover, hábitat, Perseverance, Ingenuity) y astronauta de Higgsfield =====================
+const MODELS = {};
+const gltfLoader = THREE.GLTFLoader ? new THREE.GLTFLoader() : null;
+function loadModel(name) {
+  if (!gltfLoader) return Promise.reject(new Error('sin cargador'));
+  if (MODELS[name]) return MODELS[name];
+  return MODELS[name] = fetch(ASSET + 'modelos/' + name + '.txt').then(r => { if (!r.ok) throw new Error('no ' + name); return r.text(); }).then(t => {
+    const s = atob(t.trim()), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+    return new Promise((ok, no) => gltfLoader.parse(u.buffer, '', ok, no));
+  }).then(g => { shrinkTex(g.scene, qIdx > 1 ? 2048 : 1024); g.scene.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } }); return g; });
+}
+// achica texturas gigantes para placas de video chicas
+function shrinkTex(root, max) {
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+      for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap']) {
+        const t = m[k]; if (!t || !t.image || t.__shrunk) continue;
+        const im = t.image, w = im.width, h = im.height;
+        if (w > max || h > max) { const sc = max / Math.max(w, h), c = document.createElement('canvas'); c.width = Math.round(w * sc); c.height = Math.round(h * sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); t.image = c; t.needsUpdate = true; }
+        t.__shrunk = 1; t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+      }
+    });
+  });
+}
+// pone un modelo apoyado en el piso, centrado y con el tamaño pedido
+function fitModel(obj, opt) {
+  const box = new THREE.Box3().setFromObject(obj), sz = box.getSize(new THREE.Vector3());
+  let s = 1;
+  if (opt.height) s = opt.height / sz.y; else if (opt.length) s = opt.length / Math.max(sz.x, sz.z); else if (opt.scale) s = opt.scale;
+  obj.scale.multiplyScalar(s);
+  const b2 = new THREE.Box3().setFromObject(obj), c = b2.getCenter(new THREE.Vector3());
+  obj.position.x -= c.x; obj.position.z -= c.z; obj.position.y -= b2.min.y;
+  const w = new THREE.Group(); w.add(obj); return w;
+}
+
+// ---------- astronauta con esqueleto (generado con Higgsfield) ----------
+let astroTpl = null;
+const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _qc = new THREE.Quaternion(), _ax = new THREE.Vector3();
+const AXX = new THREE.Vector3(1, 0, 0), AXY = new THREE.Vector3(0, 1, 0), AXZ = new THREE.Vector3(0, 0, 1);
+function makeSkinnedAstro(tint) {
+  const inner = THREE.SkeletonUtils.clone(astroTpl.scene);
+  const w = new THREE.Group(); w.add(inner);
+  const a = { g: w, bones: {}, rest: {}, rw: {}, ph: Math.random() * 6, skinned: true, inner };
+  inner.traverse(o => { if (o.isBone) a.bones[o.name] = o; });
+  // medir con los huesos (la caja de un modelo con esqueleto engaña)
+  inner.updateMatrixWorld(true);
+  const P = n => a.bones[n] ? a.bones[n].getWorldPosition(new THREE.Vector3()) : new THREE.Vector3();
+  const head = P('Head'), foot = P('LeftToeBase').y < P('LeftFoot').y ? P('LeftToeBase') : P('LeftFoot'), hips = P('Hips');
+  const sc = 1.6 / Math.max(0.001, head.y - foot.y);
+  inner.scale.multiplyScalar(sc); inner.position.set(-hips.x * sc, -foot.y * sc + 0.06, -hips.z * sc);
+  inner.traverse(o => {
+    if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; if (tint) { o.material = o.material.clone(); o.material.color = new THREE.Color(tint).lerp(new THREE.Color(0xffffff), 0.45); } }
+  });
+  w.updateMatrixWorld(true);
+  const wq = new THREE.Quaternion(); w.getWorldQuaternion(wq); wq.invert();
+  for (const k in a.bones) { a.rest[k] = a.bones[k].quaternion.clone(); const q = new THREE.Quaternion(); a.bones[k].getWorldQuaternion(q); a.rw[k] = wq.clone().multiply(q); }
+  a.baseY = inner.position.y;
+  return a;
+}
+// gira un hueso con rotaciones expresadas en el espacio del personaje (mira hacia +Z, su izquierda es +X)
+function bSet(a, name, qW) {
+  const b = a.bones[name]; if (!b) return;
+  const rw = a.rw[name]; _qc.copy(rw).invert().multiply(qW).multiply(rw);
+  b.quaternion.copy(a.rest[name]).multiply(_qc);
+}
+function qAx(axis, ang, out) { return (out || new THREE.Quaternion()).setFromAxisAngle(axis, ang); }
+let ARM_DOWN = 0.3; // baja los brazos desde la pose en "A"
+function animSkinned(a, speed, air, dt, dig) {
+  a.ph += dt * (1.6 + speed * 1.25);
+  const s = air ? 0 : Math.min(1, speed / 4.5), sw = Math.sin(a.ph), run = Math.min(1, Math.max(0, (speed - 4.5) / 3));
+  const t = tNow, breath = Math.sin(t * 1.8) * 0.025;
+  // piernas
+  let hl = -sw * (0.55 + run * 0.25) * s, hr = sw * (0.55 + run * 0.25) * s;
+  let kl = (0.08 + Math.max(0, Math.sin(a.ph - 1.2)) * (0.75 + run * 0.5)) * s, kr = (0.08 + Math.max(0, Math.sin(a.ph + Math.PI - 1.2)) * (0.75 + run * 0.5)) * s;
+  if (air) { hl = -0.55; hr = -0.15; kl = 0.9; kr = 0.45; }
+  bSet(a, 'LeftUpLeg', qAx(AXX, hl, _qa)); bSet(a, 'RightUpLeg', qAx(AXX, hr, _qa));
+  bSet(a, 'LeftLeg', qAx(AXX, kl, _qa)); bSet(a, 'RightLeg', qAx(AXX, kr, _qa));
+  // brazos: primero bajarlos, después balancearlos
+  let al = sw * 0.45 * s + (air ? -0.6 : 0), ar = -sw * 0.45 * s + (air ? -0.6 : 0), el = -0.25 - run * 0.6, er = -0.25 - run * 0.6;
+  if (dig) { const d = Math.sin(a.ph * 2.2); al = -0.9 + d * 0.35; ar = -1.0 + d * 0.35; el = -0.5; er = -0.5; }
+  qAx(AXZ, -ARM_DOWN, _qb); qAx(AXX, al, _qa); bSet(a, 'LeftArm', _qa.multiply(_qb));
+  qAx(AXZ, ARM_DOWN, _qb); qAx(AXX, ar, _qa); bSet(a, 'RightArm', _qa.multiply(_qb));
+  bSet(a, 'LeftForeArm', qAx(AXX, el, _qa)); bSet(a, 'RightForeArm', qAx(AXX, er, _qa));
+  // torso: respira, gira un poco al caminar, se inclina al correr o excavar
+  qAx(AXY, sw * 0.08 * s, _qb); qAx(AXX, breath + run * 0.18 + (dig ? 0.35 : 0), _qa); bSet(a, 'Spine01', _qa.multiply(_qb));
+  // rebote al caminar en baja gravedad
+  a.inner.position.y = a.baseY + (air ? 0 : Math.abs(Math.cos(a.ph)) * 0.06 * s);
+}
+
+// ---------- carga de todo ----------
+let sevTpl = null, habTpl = null;
+let RV_L = 1.4, RV_W = 1.2, RV_R = 1.7; // medidas del rover para la física (cambian con el modelo de la NASA)
+function loadRealModels() {
+  if (!gltfLoader || !THREE.SkeletonUtils) return;
+  loadModel('astronauta').then(g => {
+    astroTpl = g;
+    const n = makeSkinnedAstro(); scene.remove(astro.g); n.g.position.copy(astro.g.position); n.g.rotation.copy(astro.g.rotation);
+    Object.assign(astro, n); scene.add(astro.g);
+    for (const id in net.peers) { const p = net.peers[id], c = makeSkinnedAstro(peerCols[0]); scene.remove(p.a.g); c.g.add(p.lab); p.a = c; scene.add(c.g); }
+    for (const c of crewNpcs) { const k = makeSkinnedAstro(0xffb070); scene.remove(c.a.g); c.a = k; scene.add(k.g); }
+  }).catch(e => console.warn('astronauta', e));
+  loadModel('rover_nasa').then(g => {
+    sevTpl = g; RV_L = 2.5; RV_W = 1.75; RV_R = 2.7;
+    const m = fitModel(g.scene, { length: 5.9 }); rover.body.visible = false; rover.wheels.forEach(w => w.visible = false); rover.g.add(m);
+    for (const id in net.peers) { const p = net.peers[id]; p.r.body.visible = false; p.r.wheels.forEach(w => w.visible = false); p.r.g.add(fitModel(g.scene.clone(), { length: 5.9 })); }
+  }).catch(e => console.warn('rover', e));
+  loadModel('habitat').then(g => {
+    habTpl = g;
+    for (const [, o] of bObjs) if (o.b.k === 'hab') swapHab(o);
+  }).catch(e => console.warn('habitat', e));
+}
+function swapHab(o) {
+  if (!habTpl || o.g.userData.real) return;
+  const m = fitModel(habTpl.scene.clone(), { length: 10 });
+  m.traverse(c => { if (c.isMesh) c.material = new THREE.MeshStandardMaterial({ color: 0xe9e4da, roughness: 0.55, metalness: 0.15, normalMap: c.material.normalMap || null }); });
+  o.g.children.forEach(c => { if (c.isMesh) c.visible = false; });
+  o.g.userData.lights.forEach(l => { if (l.visible !== undefined) l.visible = false; });
+  o.g.add(m); o.g.userData.real = true;
+}
+// Perseverance e Ingenuity, en el lugar real donde aterrizaron
+let landingDone = false;
+function updLanding() {
+  if (landingDone || !gltfLoader || Math.hypot(me.x - LANDING.x, me.z - LANDING.z) > 1800) return;
+  landingDone = true;
+  loadModel('perseverance').then(g => { const m = fitModel(g.scene, { length: 3.0 }); m.position.set(LANDING.x, H(LANDING.x, LANDING.z), LANDING.z); m.rotation.y = 2.2; scene.add(m); pads.push({ x: LANDING.x, z: LANDING.z, r: 0.1, h: H(LANDING.x, LANDING.z) }); boulders.push({ x: LANDING.x, z: LANDING.z, r: 1.6, h: 2 }); }).catch(() => { });
+  loadModel('ingenuity').then(g => { const m = fitModel(g.scene, { height: 0.49 }); const x = LANDING.x + 9, z = LANDING.z - 6; m.position.set(x, H(x, z), z); scene.add(m); }).catch(() => { });
+}
+
 // ===================== juego =====================
 const SOL = 1200; // un día marciano dura 20 minutos
 const LAT = 18.44 * Math.PI / 180;
@@ -732,7 +865,7 @@ async function boot() {
     CR = new Int16Array(b);
   } catch (e) { $('mLoad').textContent = 'No se pudo bajar el terreno. Revisá la conexión y recargá.'; return; }
   H0 = baseH(SPAWN.x, SPAWN.z); for (let i = 0; i < N * N; i++) HM[i] -= H0;
-  buildFar(); initRocks(); loadScanRocks(); initNodeMeshes(); initDust(); initMapCanvas();
+  buildFar(); initRocks(); loadScanRocks(); loadRealModels(); initNodeMeshes(); initDust(); initMapCanvas();
   const sv = loadSave();
   myName = (sv && sv.name) || ''; myRoom = (sv && sv.room) || ('jz' + Math.floor(Math.random() * 9000 + 1000));
   $('mName').value = myName; $('mRoom').value = myRoom;
@@ -776,7 +909,7 @@ function applyColony(full) {
   for (const b of colony.b) {
     seen.add(b.id);
     let o = bObjs.get(b.id);
-    if (!o) { const g = makeBuilding(b.k); scene.add(g); o = { g, b }; bObjs.set(b.id, o); }
+    if (!o) { const g = makeBuilding(b.k); scene.add(g); o = { g, b }; bObjs.set(b.id, o); if (b.k === 'hab') swapHab(o); }
     o.b = b; if (b.y == null) b.y = H(b.x, b.z);
     o.g.position.set(b.x, b.y, b.z); o.g.rotation.y = b.r;
   }
@@ -981,21 +1114,21 @@ function updRover(dt, ix, iz, boost, driving) {
   const sy = Math.sin(rv.yaw), cy = Math.cos(rv.yaw);
   rv.x += sy * rv.v * dt; rv.z += cy * rv.v * dt;
   rv.x = clamp(rv.x, -HALF + 60, HALF - 60); rv.z = clamp(rv.z, -HALF + 60, HALF - 60);
-  const o = { x: rv.x, z: rv.z, y: rv.y }; if (collide(o, 1.7)) { if (Math.abs(rv.v) > 6) { shake = 0.3; crashSnd(); } rv.v *= -0.25; rv.x = o.x; rv.z = o.z; }
+  const o = { x: rv.x, z: rv.z, y: rv.y }; if (collide(o, RV_R)) { if (Math.abs(rv.v) > 6) { shake = 0.3; crashSnd(); } rv.v *= -0.25; rv.x = o.x; rv.z = o.z; }
   const rx = cy, rz = -sy;
-  const gF = groundAt(rv.x + sy * 1.4, rv.z + cy * 1.4, rv.y + 1), gB = groundAt(rv.x - sy * 1.4, rv.z - cy * 1.4, rv.y + 1);
-  const gL = groundAt(rv.x - rx * 1.2, rv.z - rz * 1.2, rv.y + 1), gR = groundAt(rv.x + rx * 1.2, rv.z + rz * 1.2, rv.y + 1);
+  const gF = groundAt(rv.x + sy * RV_L, rv.z + cy * RV_L, rv.y + 1), gB = groundAt(rv.x - sy * RV_L, rv.z - cy * RV_L, rv.y + 1);
+  const gL = groundAt(rv.x - rx * RV_W, rv.z - rz * RV_W, rv.y + 1), gR = groundAt(rv.x + rx * RV_W, rv.z + rz * RV_W, rv.y + 1);
   const gC = (gF + gB + gL + gR) / 4;
   rv.vy -= G * dt; rv.y += rv.vy * dt;
   if (rv.y <= gC) {
     if (!rv.grounded && rv.vy < -5) { shake = Math.min(0.6, -rv.vy / 20); puff(rv.x, gC, rv.z, 3, 6); crashSnd(); }
     rv.y = gC; rv.vy = clamp((gC - rv.lastG) / Math.max(dt, 0.001), -20, 14); rv.grounded = true;
-    rv.pitch = lerp(rv.pitch, Math.atan2(gF - gB, 2.8), Math.min(1, dt * 10)); rv.roll = lerp(rv.roll, Math.atan2(gR - gL, 2.4), Math.min(1, dt * 10));
+    rv.pitch = lerp(rv.pitch, Math.atan2(gF - gB, RV_L * 2), Math.min(1, dt * 10)); rv.roll = lerp(rv.roll, Math.atan2(gR - gL, RV_W * 2), Math.min(1, dt * 10));
   } else { rv.grounded = rv.y - gC < 0.08; if (!rv.grounded) rv.pitch = lerp(rv.pitch, -0.15, dt * 0.6); }
   rv.lastG = gC;
   rover.g.position.set(rv.x, rv.y, rv.z); rover.g.rotation.set(0, 0, 0); rover.g.rotateY(rv.yaw); rover.g.rotateX(-rv.pitch); rover.g.rotateZ(rv.roll);
   for (const w of rover.wheels) w.rotation.x += rv.v * dt / 0.48;
-  if (rv.grounded && Math.abs(rv.v) > 4 && Math.random() < dt * Math.abs(rv.v) * 0.5) puff(rv.x - sy * 1.8, rv.y, rv.z - cy * 1.8, 1.4 + Math.abs(rv.v) * 0.06, 1);
+  if (rv.grounded && Math.abs(rv.v) > 4 && Math.random() < dt * Math.abs(rv.v) * 0.5) puff(rv.x - sy * (RV_L + 0.5), rv.y, rv.z - cy * (RV_L + 0.5), 1.4 + Math.abs(rv.v) * 0.06, 1);
   roverSnd(driving ? Math.abs(rv.v) : 0);
 }
 
@@ -1025,7 +1158,7 @@ function interactPrompt(t) {
     else if (t.kind === 'clean') s = '<kbd>E</kbd>Limpiar el polvo del panel (' + Math.round(t.b.d * 100) + '%)';
     else if (t.kind === 'lab') s = '<kbd>E</kbd>Abrir el laboratorio';
     else if (t.kind === 'bot') s = '<kbd>E</kbd>Fabricar robot minero (8 metal, 30 energía) · tenés ' + colony.bots;
-  } else if (Math.hypot(rv.x - me.x, rv.z - me.z) < 5) s = '<kbd>R</kbd>Subir al rover';
+  } else if (Math.hypot(rv.x - me.x, rv.z - me.z) < RV_R + 3) s = '<kbd>R</kbd>Subir al rover';
   else if (me.onG && slopeAt(me.x, me.z) < 0.6) s = '<kbd>E</kbd>Mantené para excavar regolito';
   p.style.display = s ? 'block' : 'none'; if (s) p.innerHTML = s;
 }
@@ -1406,8 +1539,8 @@ $('map').onclick = () => $('map').style.display = 'none';
 function toggleRover() {
   if (me.inRover) {
     if (Math.abs(rv.v) > 4) return toast('Frená antes de bajarte.');
-    me.inRover = false; const sx = Math.cos(rv.yaw) * 2.6, sz = -Math.sin(rv.yaw) * 2.6; me.x = rv.x + sx; me.z = rv.z + sz; me.y = groundAt(me.x, me.z) + 0.5; me.vx = me.vz = me.vy = 0; headLamp.intensity = 0;
-  } else if (Math.hypot(rv.x - me.x, rv.z - me.z) < 5) { me.inRover = true; if (mode === 'build') closeBuild(); toast('W/S acelerar y frenar · A/D doblar · Espacio turbo · R bajar', 4000); }
+    me.inRover = false; const sx = Math.cos(rv.yaw) * (RV_W + 1.4), sz = -Math.sin(rv.yaw) * (RV_W + 1.4); me.x = rv.x + sx; me.z = rv.z + sz; me.y = groundAt(me.x, me.z) + 0.5; me.vx = me.vz = me.vy = 0; headLamp.intensity = 0;
+  } else if (Math.hypot(rv.x - me.x, rv.z - me.z) < RV_R + 3) { me.inRover = true; if (mode === 'build') closeBuild(); toast('W/S acelerar y frenar · A/D doblar · Espacio turbo · R bajar', 4000); }
 }
 canvas.addEventListener('mousedown', e => {
   if (!started) return;
@@ -1447,7 +1580,7 @@ function updCamera(dt) {
     camera.position.set(me.x, me.y + 1.68, me.z);
     camera.lookAt(me.x + Math.sin(camYaw) * Math.cos(camPitch) * 10, me.y + 1.68 - Math.sin(camPitch) * 10, me.z + Math.cos(camYaw) * Math.cos(camPitch) * 10);
   } else {
-    const d = me.inRover ? Math.max(camDist + 3, 10) : camDist, cp = Math.cos(camPitch);
+    const d = me.inRover ? Math.max(camDist + 5, RV_R * 4.5) : camDist, cp = Math.cos(camPitch);
     let x = camT.x - Math.sin(camYaw) * cp * d, y = camT.y + Math.sin(camPitch) * d, z = camT.z - Math.cos(camYaw) * cp * d;
     y = Math.max(y, groundAt(x, z) + 0.7);
     camera.position.set(x, y, z); camera.lookAt(camT);
@@ -1518,7 +1651,7 @@ function loop(now) {
     if (mode === 'build') updGhost();
     checkMission(dt);
     if (isHost) { simColony(dt); if (tNow - lastPush > 1) pushState(true); else flushState(); }
-    sendPres(dt);
+    sendPres(dt); updLanding();
   } else {
     // menú: vuelo lento sobre la colonia
     const hb = colony.b[0], a = tNow * 0.05; camYaw = a;

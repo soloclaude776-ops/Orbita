@@ -31,7 +31,7 @@ const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.end('ok'); return; }
   if (handleAi(req, res)) return;
   // terreno real y texturas de JEZERO
-  const mf = /^\/marte\/((?:tex\/)?[a-z_]+.(?:jpg|txt))$/.exec(req.url.split('?')[0]);
+  const mf = /^\/marte\/((?:tex\/|modelos\/)?[a-z0-9_]+\.(?:jpg|txt))$/.exec(req.url.split('?')[0]);
   if (mf) { const f = path.join(__dirname, 'public', 'marte', mf[1]); if (fs.existsSync(f)) { res.writeHead(200, { 'content-type': f.endsWith('.jpg') ? 'image/jpeg' : 'text/plain', 'cache-control': 'public, max-age=86400' }); fs.createReadStream(f).pipe(res); return; } }
   const page = (/^\/([a-z]+)\/?(\?.*)?$/i.exec(req.url) || [])[1];
   if (page && PAGES[page.toLowerCase()]) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(PAGES[page.toLowerCase()]); return; }
