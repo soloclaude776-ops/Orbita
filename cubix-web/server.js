@@ -22,13 +22,15 @@ function save() {
 // dist/ tiene las páginas traducidas para navegadores viejos como el de la Play (las arma build.js); si no está, se usan las originales
 const PUB = fs.existsSync(path.join(__dirname, 'dist', 'eter.html')) ? 'dist' : 'public';
 const html = fs.readFileSync(path.join(__dirname, PUB, 'index.html'));
-const eterHtml = fs.readFileSync(path.join(__dirname, PUB, 'eter.html'));
-const testHtml = fs.readFileSync(path.join(__dirname, 'public', 'test.html')); // prueba qué soporta el navegador (Play, tele...)
+// Los otros juegos viven en su propia dirección: /eter, /comarca, /eco (y /test prueba qué soporta el navegador)
+const PAGES = {};
+for (const name of ['eter', 'comarca', 'eco']) PAGES[name] = fs.readFileSync(path.join(__dirname, PUB, name + '.html'));
+PAGES.test = fs.readFileSync(path.join(__dirname, 'public', 'test.html'));
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.end('ok'); return; }
   if (handleAi(req, res)) return;
-  if (/^\/test\/?(\?.*)?$/i.test(req.url)) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(testHtml); return; }
-  if (/^\/eter\/?(\?.*)?$/i.test(req.url)) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(eterHtml); return; }
+  const page = (/^\/([a-z]+)\/?(\?.*)?$/i.exec(req.url) || [])[1];
+  if (page && PAGES[page.toLowerCase()]) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(PAGES[page.toLowerCase()]); return; }
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
   res.end(html);
 });
