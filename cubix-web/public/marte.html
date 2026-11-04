@@ -67,11 +67,15 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.
 #joy i{position:absolute;left:40px;top:40px;width:50px;height:50px;border-radius:50%;background:rgba(255,160,110,.45)}
 #tcb{position:absolute;right:14px;bottom:18px;display:grid;grid-template-columns:repeat(3,62px);gap:8px;pointer-events:auto}
 #tcb button{height:56px;border-radius:14px;border:1px solid var(--line);background:rgba(30,14,8,.6);color:var(--fg);font:inherit;font-size:12px;font-weight:700}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:3;background:radial-gradient(ellipse at 50% 46%,rgba(0,0,0,0) 52%,rgba(20,6,0,.42) 100%)}
+#grain{position:fixed;inset:-50%;pointer-events:none;z-index:3;opacity:.07;animation:gr .5s steps(5) infinite}
+@keyframes gr{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-4%)}60%{transform:translate(-4%,-1%)}80%{transform:translate(3%,3%)}}
+body.cine #c{filter:contrast(1.07) saturate(1.06)}
 #dmg{position:fixed;inset:0;pointer-events:none;z-index:4;box-shadow:inset 0 0 160px rgba(255,30,10,.0);transition:box-shadow .3s}
 @media (max-width:700px){#col{display:none}#msn{top:auto;bottom:170px;width:200px}#vit{width:170px}#inv{bottom:auto;top:12px;left:auto;right:12px;transform:none;flex-direction:column;align-items:flex-end;background:none;border:0}#clock{top:auto;bottom:180px;right:12px;display:none}}
 </style>
 <canvas id="c"></canvas>
-<div id="dmg"></div>
+<div id="vig"></div><div id="grain"></div><div id="dmg"></div>
 <div id="vit" class="hud pnl">
  <div class="bar"><b>O₂</b><i><u id="bO2" style="background:var(--o2)"></u></i></div>
  <div class="bar"><b>TRAJE</b><i><u id="bBat" style="background:var(--en)"></u></i></div>
@@ -107,6 +111,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.
  <div class="help"><b>Teclado:</b> WASD moverte · Shift correr · Espacio saltar (mantené en el aire = mochila a chorro) · E usar / juntar / excavar · R subir o bajar del rover · B construir · F linterna · M mapa · L laboratorio · V cámara · clic para mirar con el mouse.<br><b>Celular:</b> palanca a la izquierda, arrastrá la derecha para mirar.<br>Tu progreso se guarda solo en este aparato y en la colonia compartida.</div>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Lensflare.js"></script>
 <script>
 'use strict';
 // ===================== JEZERO · núcleo y mundo =====================
@@ -179,12 +184,15 @@ function resize() {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize);
+(() => { const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d'), im = x.createImageData(160, 160); for (let i = 0; i < im.data.length; i += 4) { const v = Math.random() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); $('grain').style.background = 'url(' + c.toDataURL() + ')'; })();
 function setQuality(i) {
   qIdx = i; Q = QUAL[i];
   renderer.shadowMap.enabled = !!Q.sh;
   if (Q.sh) { sun.castShadow = true; sun.shadow.mapSize.set(Q.sh, Q.sh); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
   else sun.castShadow = false;
   scene.traverse(o => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); } });
+  if (flare) flare.visible = i > 0;
+  document.body.classList.toggle('cine', i > 0); $('grain').style.display = i > 0 ? '' : 'none';
   resize();
 }
 
@@ -193,6 +201,18 @@ const sun = new THREE.DirectionalLight(0xfff0dc, 2.0);
 sun.shadow.camera.left = -45; sun.shadow.camera.right = 45; sun.shadow.camera.top = 45; sun.shadow.camera.bottom = -45;
 sun.shadow.camera.near = 1; sun.shadow.camera.far = 400; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;
 scene.add(sun, sun.target);
+// destello del sol en la cámara (como una cámara de verdad)
+let flare = null;
+if (THREE.Lensflare) {
+  const ft = (r, stops) => { const c = document.createElement('canvas'); c.width = c.height = r * 2; const x = c.getContext('2d'), g = x.createRadialGradient(r, r, 0, r, r, r); stops.forEach(s => g.addColorStop(s[0], s[1])); x.fillStyle = g; x.fillRect(0, 0, r * 2, r * 2); return new THREE.CanvasTexture(c); };
+  const t0 = ft(128, [[0, 'rgba(255,250,235,1)'], [0.12, 'rgba(255,225,180,.7)'], [0.4, 'rgba(255,170,110,.12)'], [1, 'rgba(255,150,90,0)']]);
+  const t1 = ft(64, [[0, 'rgba(140,190,255,.0)'], [0.7, 'rgba(140,190,255,.25)'], [0.85, 'rgba(160,200,255,.35)'], [1, 'rgba(160,200,255,0)']]);
+  const t2 = ft(64, [[0, 'rgba(255,190,140,.35)'], [1, 'rgba(255,190,140,0)']]);
+  flare = new THREE.Lensflare();
+  flare.addElement(new THREE.LensflareElement(t0, 420, 0, new THREE.Color(1, 0.95, 0.88)));
+  flare.addElement(new THREE.LensflareElement(t2, 60, 0.45)); flare.addElement(new THREE.LensflareElement(t1, 110, 0.65)); flare.addElement(new THREE.LensflareElement(t2, 40, 0.85)); flare.addElement(new THREE.LensflareElement(t1, 160, 1.05));
+  sun.add(flare);
+}
 const hemi = new THREE.HemisphereLight(0xd9a27a, 0x3a1f12, 0.55);
 scene.add(hemi);
 const headLamp = new THREE.SpotLight(0xfff4e6, 0, 70, 0.55, 0.45, 1.6);
@@ -265,7 +285,8 @@ const TX = {
 };
 
 // ---------- material del suelo ----------
-const TU = { tG: { value: TX.g }, tGN: { value: TX.gn }, tD: { value: TX.d }, tDN: { value: TX.dn }, tR: { value: TX.r }, tRN: { value: TX.rn }, uTrack: { value: 0 } };
+TX.o = tex('ctx_orbita');
+const TU = { tO: { value: TX.o }, tG: { value: TX.g }, tGN: { value: TX.gn }, tD: { value: TX.d }, tDN: { value: TX.dn }, tR: { value: TX.r }, tRN: { value: TX.rn }, uTrack: { value: 0 } };
 function terrainMaterial(hole) {
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.97, metalness: 0 });
   const uHole = { value: hole || new THREE.Vector4(0, 0, -1, 0) };
@@ -276,7 +297,7 @@ function terrainMaterial(hole) {
       vWP=(modelMatrix*vec4(transformed,1.)).xyz;vWN=normalize(mat3(modelMatrix)*objectNormal);
       if(uHole.z>0.){vec2 dd=abs(vWP.xz-uHole.xy);float mm=max(dd.x,dd.y);
         if(mm<uHole.z-uHole.w)transformed.y-=60.;else if(mm<uHole.z+2.)transformed.y-=3.;}`);
-    sh.fragmentShader = `varying vec3 vWP;varying vec3 vWN;uniform sampler2D tG,tGN,tD,tDN,tR,tRN;vec3 gN;
+    sh.fragmentShader = `varying vec3 vWP;varying vec3 vWN;uniform sampler2D tO,tG,tGN,tD,tDN,tR,tRN;vec3 gN;
       float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x),mix(h21(i+vec2(0.,1.)),h21(i+1.),f.x),f.y);}
       vec3 marsTint(vec3 c){float l=dot(c,vec3(.299,.587,.114));return mix(vec3(.26,.16,.11),vec3(.82,.62,.48),clamp(l*1.3,0.,1.))*.6+c*vec3(1.,.8,.66)*.4;}
@@ -294,7 +315,9 @@ function terrainMaterial(hole) {
       vec2 ruv=(abs(wn.x)>abs(wn.z)?vWP.zy:vWP.xy)*vec2(.09,.16);
       vec3 rc=texture2D(tR,ruv).rgb;vec3 rn=texture2D(tRN,ruv).xyz;
       vec3 col=mix(gc,rc*vec3(1.,.95,.9),rk);
-      col=marsTint(col);col=(col-.5)*1.18+.5;
+      col=marsTint(col);
+      {vec2 uo=(vWP.xz+5120.)/10240.;float inO=step(abs(vWP.x),5110.)*step(abs(vWP.z),5110.);float o=texture2D(tO,uo).r;float od=(texture2D(tO,uo+vec2(.0006,0.)).r+texture2D(tO,uo+vec2(0.,.0006)).r)*.5;o=mix(od,o,smoothstep(30.,200.,dist));
+       col*=mix(1.,.42+o*1.15,inO*mix(.38,.9,fd));}col=(col-.5)*1.18+.5;
       col*=.86+.22*vn(vec2(vWP.y*.11,vWP.x*.002));
       col*=mix(1.,.82+.3*vn(vWP.xz*.0035),.8);
       col=pow(col,vec3(2.2));
@@ -356,7 +379,19 @@ function rockGeo(seed, det) {
   return g;
 }
 const rockMat = new THREE.MeshStandardMaterial({ map: TX.rS, normalMap: TX.rn, color: 0xb57a58, roughness: 0.92 });
-let rocksS, rocksB;
+let rocksS, rocksB, scanRocks = null;
+async function loadScanRocks() {
+  try {
+    const d = await fetch(ASSET + 'rocas.txt').then(r => { if (!r.ok) throw 0; return r.json(); });
+    const dec = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
+    scanRocks = Object.keys(d).map(k => {
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(dec(d[k].p, Float32Array), 3)); g.setAttribute('normal', new THREE.BufferAttribute(dec(d[k].n, Float32Array), 3)); g.setAttribute('uv', new THREE.BufferAttribute(dec(d[k].u, Float32Array), 2)); g.setIndex(new THREE.BufferAttribute(dec(d[k].i, Uint32Array), 1));
+      const m = new THREE.MeshStandardMaterial({ map: tex('roca' + k + '_diff', true), normalMap: tex('roca' + k + '_nor'), color: 0xe08a55, roughness: 0.95 });
+      const im = new THREE.InstancedMesh(g, m, 30); im.castShadow = im.receiveShadow = true; im.frustumCulled = false; im.count = 0; scene.add(im); im.userData.h = d[k].h; return im;
+    });
+    if (nearCx < 1e8) scatterRocks(nearCx, nearCz);
+  } catch (e) { scanRocks = null; }
+}
 const boulders = []; // para choques {x,z,r}
 function initRocks() {
   rocksS = new THREE.InstancedMesh(rockGeo(7, 1), rockMat, 1000);
@@ -367,21 +402,23 @@ function initRocks() {
 }
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
 function scatterRocks(cx, cz) {
-  let ns = 0, nb = 0; boulders.length = 0;
+  let ns = 0, nb = 0; boulders.length = 0; const sc3 = [0, 0, 0], useScan = scanRocks && qIdx > 0;
   const step = 5, R = NEAR_HALF - 6, maxS = Q.rocks;
   for (let z = Math.floor((cz - R) / step); z <= Math.floor((cz + R) / step); z++) for (let x = Math.floor((cx - R) / step); x <= Math.floor((cx + R) / step); x++) {
     const h = hash(x * 7 + 3, z * 13 + 1), field = vnoise(x * step / 90, z * step / 90);
     if (h > 0.22 + (1 - field) * 0.6) continue;
     const px = (x + hash(x, z * 3)) * step, pz = (z + hash(x * 5, z)) * step;
     if (nearPad(px, pz)) continue;
-    const big = hash(x * 3, z * 17) > 0.975;
+    const big = hash(x * 3, z * 17) > (scanRocks && qIdx > 0 ? 0.968 : 0.975);
     const sc = big ? 0.9 + hash(x, z * 9) * 1.9 : 0.12 + Math.pow(hash(x * 11, z), 3) * 0.6;
     _e.set(hash(x, z) * 0.6, hash(z, x) * 6.28, hash(x * 2, z) * 0.6); _q.setFromEuler(_e);
     _v.set(px, H(px, pz) + sc * 0.15, pz); _s.set(sc * (0.8 + hash(x, z * 2) * 0.5), sc, sc * (0.8 + hash(x * 4, z) * 0.5));
     _m.compose(_v, _q, _s);
-    if (big && nb < 90) { rocksB.setMatrixAt(nb++, _m); boulders.push({ x: px, z: pz, r: sc * 1.05, h: sc * 0.9 }); }
+    if (big && useScan) { const k = Math.floor(hash(x * 9, z * 5) * 3) % 3, im = scanRocks[k]; if (sc3[k] < 30) { const S = sc * 2.2; _e.set(0, hash(z, x) * 6.28, 0); _q.setFromEuler(_e); _v.set(px, H(px, pz) - S * im.userData.h * 0.18, pz); _s.set(S, S * (0.8 + hash(x, z * 2) * 0.4), S); _m.compose(_v, _q, _s); im.setMatrixAt(sc3[k]++, _m); boulders.push({ x: px, z: pz, r: S * 0.45, h: S * im.userData.h * 0.7 }); } }
+    else if (big && nb < 90) { rocksB.setMatrixAt(nb++, _m); boulders.push({ x: px, z: pz, r: sc * 1.05, h: sc * 0.9 }); }
     else if (!big && ns < maxS) rocksS.setMatrixAt(ns++, _m);
   }
+  if (scanRocks) scanRocks.forEach((im, k) => { im.count = useScan ? sc3[k] : 0; im.instanceMatrix.needsUpdate = true; });
   rocksS.count = ns; rocksB.count = nb; rocksS.instanceMatrix.needsUpdate = rocksB.instanceMatrix.needsUpdate = true;
 }
 function nearPad(x, z) { for (const p of pads) { const dx = x - p.x, dz = z - p.z; if (dx * dx + dz * dz < (p.r + 1.5) * (p.r + 1.5)) return true; } return false; }
@@ -695,7 +732,7 @@ async function boot() {
     CR = new Int16Array(b);
   } catch (e) { $('mLoad').textContent = 'No se pudo bajar el terreno. Revisá la conexión y recargá.'; return; }
   H0 = baseH(SPAWN.x, SPAWN.z); for (let i = 0; i < N * N; i++) HM[i] -= H0;
-  buildFar(); initRocks(); initNodeMeshes(); initDust(); initMapCanvas();
+  buildFar(); initRocks(); loadScanRocks(); initNodeMeshes(); initDust(); initMapCanvas();
   const sv = loadSave();
   myName = (sv && sv.name) || ''; myRoom = (sv && sv.room) || ('jz' + Math.floor(Math.random() * 9000 + 1000));
   $('mName').value = myName; $('mRoom').value = myRoom;
@@ -1376,7 +1413,7 @@ canvas.addEventListener('mousedown', e => {
   if (!started) return;
   if (mode === 'build' && e.button === 0) { placeBuild(); return; }
   if (e.button === 2 && mode === 'build') { closeBuild(); return; }
-  if (!isTouch && !document.pointerLockElement && canvas.requestPointerLock) { try { canvas.requestPointerLock(); } catch (er) { } }
+  if (!isTouch && !document.pointerLockElement && canvas.requestPointerLock) { try { const pl = canvas.requestPointerLock(); if (pl && pl.catch) pl.catch(() => { }); } catch (er) { } }
   dragLook = { x: e.clientX, y: e.clientY };
 });
 addEventListener('mouseup', () => dragLook = null);
