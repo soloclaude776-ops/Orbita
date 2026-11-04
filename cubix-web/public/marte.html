@@ -689,7 +689,8 @@ let myName = 'Astronauta', myRoom = '';
 async function boot() {
   $('mLoad').textContent = 'Bajando el terreno real de Jezero…';
   try {
-    const [a, b] = await Promise.all([fetch(ASSET + 'jezero.bin').then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); }), fetch(ASSET + 'crater.bin').then(r => r.arrayBuffer())]);
+    const get = n => fetch(ASSET + n + '.txt').then(r => { if (!r.ok) throw 0; return r.text(); }).then(t => { const s = atob(t.trim()), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; });
+    const [a, b] = await Promise.all([get('jezero'), get('crater')]);
     const u = new Uint16Array(a); HM = new Float32Array(N * N); for (let i = 0; i < N * N; i++) HM[i] = u[i] / 20;
     CR = new Int16Array(b);
   } catch (e) { $('mLoad').textContent = 'No se pudo bajar el terreno. Revisá la conexión y recargá.'; return; }
