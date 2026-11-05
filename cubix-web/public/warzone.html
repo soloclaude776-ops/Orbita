@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WARZONE - BATTLE FRONT</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101712;color:white;font-family:Arial,sans-serif}
+button{cursor:pointer;border:1px solid #82917c;background:#26362a;color:white;padding:12px 20px;font-weight:bold}
+button:hover{background:#506c43}
+.screen{display:none;min-height:100vh;padding:35px}
+.active{display:block}
+header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #52634c;padding-bottom:15px}
+.logo{font-size:30px;font-weight:900;letter-spacing:3px;color:#b5cf8a}
+.menu{display:flex;gap:12px;flex-wrap:wrap;margin:30px 0}
+.hero{margin-top:65px;max-width:700px}
+.hero h1{font-size:55px;margin:10px 0}
+.hero p{color:#c1c9b9;line-height:1.6}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px;margin-top:35px}
+.mode{background:#202c23;padding:25px;border:1px solid #52634c}
+.mode h3{color:#c2db91}
+#game{padding:0;position:relative;overflow:hidden;background:#354b30}
+canvas{width:100%;height:100vh;display:block}
+.hud{position:absolute;inset:0;pointer-events:none;padding:20px}
+.hud button{pointer-events:auto}
+.info{background:#101712cc;padding:12px;display:inline-block}
+.controls{position:absolute;bottom:20px;left:20px;background:#101712dd;padding:15px;line-height:1.7}
+#message{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:#111;padding:12px}
+</style>
+</head>
+<body>
+
+<section id="home" class="screen active">
+<header>
+<div class="logo">WARZONE</div>
+<div>BATTLE FRONT | ONLINE EXPERIENCE</div>
+</header>
+<div class="hero">
+<p>OPERATION: SURVIVE</p>
+<h1>PREPARATE<br>PARA LA GUERRA</h1>
+<p>Explorá un mundo enorme, conseguí armas, preparate para combatir y sobreviví en el campo de batalla.</p>
+<button onclick="show('modes')">JUGAR AHORA</button>
+</div>
+</section>
+
+<section id="modes" class="screen">
+<header><div class="logo">WARZONE</div><button onclick="show('home')">VOLVER</button></header>
+<h1>SELECCIONAR MODO</h1>
+<div class="modes">
+<div class="mode"><h3>BATTLE ROYALE</h3><p>Explorá el mapa y sobreviví.</p><button onclick="startGame()">JUGAR</button></div>
+<div class="mode"><h3>GUERRA POR EQUIPOS</h3><p>Enfrentate a enemigos.</p><button onclick="startGame()">JUGAR</button></div>
+<div class="mode"><h3>ENTRENAMIENTO</h3><p>Practicá tus habilidades.</p><button onclick="startGame()">JUGAR</button></div>
+<div class="mode"><h3>PARTIDA PRIVADA</h3><p>Campo de pruebas local.</p><button onclick="startGame()">JUGAR</button></div>
+</div>
+</section>
+
+<section id="game" class="screen">
+<canvas id="world"></canvas>
+<div class="hud">
+<div class="info" id="stats">VIDA: 100 | MUNICIÓN: 30</div>
+<div id="message">MISIÓN: SOBREVIVÍ</div>
+<div style="position:absolute;right:20px;top:20px">
+<button onclick="changeWeapon()">CAMBIAR ARMA</button>
+<button onclick="parachute()">PARACAÍDAS</button>
+<button onclick="show('home')">SALIR</button>
+</div>
+<div class="controls">
+W A S D: MOVERSE<br>
+RATÓN: APUNTAR Y DISPARAR<br>
+R: RECARGAR<br>
+1 / 2: CAMBIAR ARMA
+</div>
+</div>
+</section>
+
+<section id="skins" class="screen">
+<header><div class="logo">WARZONE</div><button onclick="show('home')">VOLVER</button></header>
+<h1>PERSONAJES</h1>
+<button onclick="skin='#263c27';show('modes')">OPERADOR BOSQUE</button>
+<button onclick="skin='#777777';show('modes')">OPERADOR GRIS</button>
+<button onclick="skin='#9a7b42';show('modes')">OPERADOR DESIERTO</button>
+</section>
+
+<script>
+const canvas=document.getElementById('world');
+const ctx=canvas.getContext('2d');
+let player={x:0,y:0,life:100,ammo:30,weapon:0};
+let enemies=[],keys={},bullets=[],camera=0,skin='#263c27',parachuting=false;
+let weapons=[
+{name:'FUSIL M4',ammo:30,damage:35},
+{name:'FRANCOTIRADOR',ammo:5,damage:100}
+];
+function show(id){
+document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+}
+function startGame(){
+player={x:0,y:0,life:100,ammo:30,weapon:0};
+enemies=[];bullets=[];parachuting=false;
+for(let i=0;i<15;i++){
+enemies.push({x:Math.random()*1800-900,y:Math.random()*1800-900,life:100});
+}
+show('game');resize();draw();
+}
+function resize(){
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+}
+window.addEventListener('resize',resize);
+window.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
+window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+canvas.addEventListener('click',shoot);
+function shoot(){
+if(player.ammo<=0)return;
+player.ammo--;
+let target=enemies.find(e=>Math.hypot(e.x-player.x,e.y-player.y)<500);
+if(target){
+target.life-=weapons[player.weapon].damage;
+if(target.life<=0)enemies.splice(enemies.indexOf(target),1);
+}
+}
+function changeWeapon(){
+player.weapon=(player.weapon+1)%weapons.length;
+player.ammo=weapons[player.weapon].ammo;
+}
+function parachute(){
+parachuting=!parachuting;
+document.getElementById('message').textContent=
+parachuting?'PARACAÍDAS ACTIVADO':'PARACAÍDAS DESACTIVADO';
+}
+function draw(){
+if(!document.getElementById('game').classList.contains('active'))return;
+let speed=parachuting?2:5;
+if(keys.w)player.y-=speed;
+if(keys.s)player.y+=speed;
+if(keys.a)player.x-=speed;
+if(keys.d)player.x+=speed;
+if(keys.r)player.ammo=weapons[player.weapon].ammo;
+let w=canvas.width,h=canvas.height;
+ctx.fillStyle='#40583a';ctx.fillRect(0,0,w,h);
+let camX=player.x,camY=player.y;
+ctx.strokeStyle='#617b4c';ctx.lineWidth=2;
+for(let x=-200;x<w+200;x+=100){
+for(let y=-200;y<h+200;y+=100){
+let gx=Math.floor((x-w/2+camX)/100);
+let gy=Math.floor((y-h/2+camY)/100);
+ctx.strokeRect(x-(camX%100),y-(camY%100),100,100);
+if((gx*7+gy*13)%17===0){
+ctx.fillStyle='#263e27';
+ctx.beginPath();ctx.arc(x-(camX%100)+30,y-(camY%100)+30,17,0,7);ctx.fill();
+}
+}
+}
+ctx.fillStyle='#9a9a83';
+ctx.fillRect(w/2-22,h/2-22,44,44);
+ctx.fillStyle=skin;
+ctx.beginPath();ctx.arc(w/2,h/2,15,0,7);ctx.fill();
+ctx.fillStyle='#222';ctx.fillRect(w/2-5,h/2-5,10,10);
+enemies.forEach(e=>{
+let x=w/2+e.x-camX,y=h/2+e.y-camY;
+if(x<0||x>w||y<0||y>h)return;
+ctx.fillStyle='#a63c32';
+ctx.beginPath();ctx.arc(x,y,14,0,7);ctx.fill();
+ctx.fillStyle='white';ctx.fillRect(x-15,y-24,30,4);
+ctx.fillStyle='#4cbd52';ctx.fillRect(x-15,y-24,30*e.life/100,4);
+});
+document.getElementById('stats').textContent=
+'VIDA: '+player.life+' | '+weapons[player.weapon].name+' | MUNICIÓN: '+player.ammo+' | ENEMIGOS: '+enemies.length;
+requestAnimationFrame(draw);
+}
+</script>
+</body>
+</html>
