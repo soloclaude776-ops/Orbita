@@ -68,15 +68,18 @@ textarea{min-height:150px;font-family:ui-monospace,Consolas,monospace;font-size:
   <button class="btn" id="entrar">Entrar</button>
   <div class="msg" id="m1"></div>
 </div>
-<div class="tabs hide" id="tabs"><button data-p="estudio" class="on">Crear con IA</button><button data-p="form">Subir archivo</button></div>
+<div class="tabs hide" id="tabs"><button data-p="estudio" class="on">Pedirle a Claude</button><button data-p="form">Subir archivo</button></div>
 <div class="box hide" id="estudio">
-  <h1>Crear con IA</h1>
-  <p class="lead">Hablá con Claude como en un chat: pedile un juego nuevo o cambios al que estás armando. Cuando te guste, tocá "Publicar en Órbita".</p>
+  <h1>Pedile un juego a Claude</h1>
+  <p class="lead">Escribí qué juego querés, o qué cambiarle a uno que ya está. Claude revisa los pedidos <b>dos veces por día (9:30 y 21:30)</b>, hace el juego, lo publica en Órbita y te deja la respuesta acá.</p>
   <div class="msg" id="m3"></div>
-  <div id="chat"></div>
-  <div id="prevbox"><iframe id="prevframe" sandbox="allow-scripts allow-pointer-lock" title="Vista previa"></iframe></div>
-  <div class="sendrow"><textarea id="ask" placeholder="Ej: haceme un juego de carreras de naves en Marte, con turbo y 3 pistas"></textarea><button class="btn" id="send">Enviar</button></div>
-  <div class="hint">La charla se guarda en este navegador. <a href="#" id="nueva" style="color:var(--acc)">Empezar de nuevo</a></div>
+  <label for="pjuego">¿Sobre qué juego?</label>
+  <select id="pjuego" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;color:var(--fg);font:inherit;padding:11px 12px"><option value="">Un juego nuevo</option></select>
+  <label for="ask">Tu pedido</label>
+  <textarea id="ask" style="font-family:inherit;font-size:14px" placeholder="Ej: haceme un juego de carreras de naves en Marte, con turbo, 3 pistas y récords"></textarea>
+  <button class="btn" id="send">Mandar pedido</button>
+  <h2 style="font-size:18px;margin:28px 0 4px">Tus pedidos</h2>
+  <div id="lista" class="hint">Cargando…</div>
 </div>
 <div class="box hide" id="form">
   <h1>Subir un juego nuevo</h1>
@@ -118,7 +121,7 @@ textarea{min-height:150px;font-family:ui-monospace,Consolas,monospace;font-size:
       $('entrar').disabled = false;
       if (!j.ok) return msg($('m1'), 'bad', j.error || 'No se pudo entrar.');
       gh = j.guardaEnGithub; $('login').classList.add('hide'); $('tabs').classList.remove('hide'); tab('estudio');
-      if (!j.claude) msg($('m3'), 'warn', 'Todavía falta conectar Claude: hay que poner la clave ANTHROPIC_API_KEY en Render. Mientras tanto podés subir archivos en la otra pestaña.');
+      if (window.__alEntrar) window.__alEntrar();
       if (!gh) msg($('m2'), 'warn', 'Ojo: todavía no está conectado GitHub, así que los juegos que subas se borran cuando el servidor se reinicia.');
     }).catch(function () { $('entrar').disabled = false; msg($('m1'), 'bad', 'Sin conexión con el servidor.'); });
   }
@@ -163,66 +166,36 @@ textarea{min-height:150px;font-family:ui-monospace,Consolas,monospace;font-size:
   }
   $('tabs').onclick = function (e) { var b = e.target.closest('button'); if (b) tab(b.getAttribute('data-p')); };
 
-  // ---------- Crear con IA: chat con Claude ----------
-  // la charla queda en este navegador; los turnos de Claude se guardan tal cual vinieron y se devuelven sin tocar
-  var hist = []; try { hist = JSON.parse(localStorage.getItem('orbita_estudio') || '[]'); } catch (e) { hist = []; }
-  var ultimoJuego = '', ocupado = false;
-  function guardar() { try { localStorage.setItem('orbita_estudio', JSON.stringify(hist)); } catch (e) { /* lleno */ } }
-  function textoDe(c) { return typeof c === 'string' ? c : (c || []).filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join(''); }
-  function sacarJuego(t) { var m = /```html\s*([\s\S]*?)```/i.exec(t); return m ? m[1].trim() : ''; }
-  function escH(s) { return s.replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
-  function burbuja(rol, t) {
-    var d = document.createElement('div'); d.className = 'b ' + (rol === 'user' ? 'yo' : 'ia');
-    pintarBurbuja(d, rol, t); $('chat').appendChild(d); $('chat').scrollTop = 1e9; return d;
+  // ---------- Pedidos a Claude (puente: los resuelve una tarea dos veces por día) ----------
+  var EST = { pendiente: ['Esperando a Claude', 'warn'], en_proceso: ['Claude lo está haciendo', 'warn'], hecho: ['Listo', 'ok'], error: ['No se pudo', 'bad'] };
+  function escH(s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function cargarPedidos() {
+    post('/api/puente/pedidos', { clave: clave }).then(function (j) {
+      if (j.error) { $('lista').textContent = j.error; return; }
+      if (!j.pedidos.length) { $('lista').textContent = 'Todavía no hay pedidos.'; return; }
+      $('lista').innerHTML = j.pedidos.map(function (p) {
+        var e = EST[p.estado] || EST.pendiente, f = new Date(p.fecha);
+        return '<div class="msg ' + e[1] + '" style="display:block;color:var(--fg)"><b>' + e[0] + '</b> · <span style="color:var(--dim)">' + f.toLocaleDateString() + ' ' + f.toLocaleTimeString().slice(0, 5) + (p.juego ? ' · sobre /' + escH(p.juego) : '') + '</span><div style="margin-top:6px">' + escH(p.texto) + '</div>' +
+          (p.respuesta ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)"><b>Claude:</b> ' + escH(p.respuesta) + '</div>' : '') +
+          (p.url ? '<div style="margin-top:6px"><a href="' + escH(p.url) + '" target="_blank">Jugar ' + escH(p.url) + '</a></div>' : '') + '</div>';
+      }).join('');
+    }).catch(function () { $('lista').textContent = 'No se pudieron cargar los pedidos.'; });
   }
-  function pintarBurbuja(d, rol, t) {
-    if (rol === 'user') { d.textContent = t; return; }
-    var juego = sacarJuego(t), abierto = !juego && /```html/i.test(t);
-    var visible = t.replace(/```html[\s\S]*?(```|$)/i, '').trim();
-    d.innerHTML = escH(visible || (abierto ? 'Escribiendo el juego…' : '')) +
-      (juego ? '<span class="code">Juego listo (' + Math.round(juego.length / 1024) + ' KB de código)</span><div class="acts"><button data-a="probar">Probar acá</button><button data-a="publicar">Publicar en Órbita</button><button data-a="bajar" class="sec">Bajar archivo</button></div>' :
-        abierto ? '<span class="code">Escribiendo código… ' + Math.round(t.length / 1024) + ' KB</span>' : '');
-    if (juego) { d.setAttribute('data-juego', '1'); d._juego = juego; ultimoJuego = juego; }
+  function cargarJuegos() {
+    fetch('/api/juegos').then(function (r) { return r.json(); }).then(function (d) {
+      $('pjuego').innerHTML = '<option value="">Un juego nuevo</option>' + d.juegos.map(function (j) { return '<option value="' + escH(j.id) + '">Cambiar ' + escH(j.titulo) + '</option>'; }).join('');
+    }).catch(function () { });
   }
-  function redibujar() { $('chat').innerHTML = ''; hist.forEach(function (m) { burbuja(m.role, textoDe(m.content)); }); }
-  redibujar();
-  $('chat').onclick = function (e) {
-    var b = e.target.closest('button'); if (!b) return; var j = b.closest('.b')._juego; if (!j) return;
-    var a = b.getAttribute('data-a');
-    if (a === 'probar') { $('prevbox').style.display = 'block'; $('prevframe').srcdoc = j; $('prevbox').scrollIntoView({ behavior: 'smooth' }); }
-    if (a === 'publicar') { html = j; $('drop').className = 'drop has'; $('drop').textContent = 'Listo: juego creado con IA (' + Math.round(j.length / 1024) + ' KB)'; var m = /<title>([^<]*)/i.exec(j); if (m && !$('titulo').value) { $('titulo').value = m[1].trim(); $('titulo').oninput(); } tab('form'); window.scrollTo(0, 0); }
-    if (a === 'bajar') { var u = URL.createObjectURL(new Blob([j], { type: 'text/html' })), l = document.createElement('a'); l.href = u; l.download = 'juego.html'; l.click(); }
+  $('send').onclick = function () {
+    var t = $('ask').value.trim(); if (t.length < 5) return msg($('m3'), 'bad', 'Contá un poco más qué querés.');
+    $('send').disabled = true; msg($('m3'), 'warn', 'Mandando…');
+    post('/api/puente/pedir', { clave: clave, texto: t, juego: $('pjuego').value }).then(function (j) {
+      $('send').disabled = false;
+      if (!j.ok) return msg($('m3'), 'bad', j.error || 'No se pudo mandar.');
+      $('ask').value = ''; msg($('m3'), 'ok', '¡Pedido mandado! Claude lo va a hacer en la próxima pasada (9:30 o 21:30).'); cargarPedidos();
+    }).catch(function () { $('send').disabled = false; msg($('m3'), 'bad', 'Se cortó la conexión.'); });
   };
-  $('nueva').onclick = function (e) { e.preventDefault(); if (!confirm('¿Borrar la charla y empezar de cero?')) return; hist = []; guardar(); redibujar(); $('prevbox').style.display = 'none'; };
-  function enviar() {
-    var t = $('ask').value.trim(); if (!t || ocupado) return;
-    $('ask').value = ''; hist.push({ role: 'user', content: t }); guardar(); burbuja('user', t);
-    var d = burbuja('assistant', ''); d.innerHTML = '<span class="think">Pensando…</span>';
-    ocupado = true; $('send').disabled = true; var acc = '', buf = '';
-    fetch('/api/estudio', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ clave: clave, messages: hist }) })
-      .then(function (r) {
-        if (!r.ok) return r.json().then(function (j) { throw new Error(j.error || 'No se pudo.'); });
-        var rd = r.body.getReader(), dec = new TextDecoder();
-        function paso() {
-          return rd.read().then(function (x) {
-            if (x.done) return;
-            buf += dec.decode(x.value, { stream: true }); var lineas = buf.split('\n'); buf = lineas.pop();
-            lineas.forEach(function (l) {
-              if (!l) return; var ev; try { ev = JSON.parse(l); } catch (e) { return; }
-              if (ev.t === 'texto') { acc += ev.d; pintarBurbuja(d, 'assistant', acc); $('chat').scrollTop = 1e9; }
-              else if (ev.t === 'fin') { hist.push({ role: 'assistant', content: ev.content }); guardar(); pintarBurbuja(d, 'assistant', textoDe(ev.content)); if (ev.stop === 'refusal') d.insertAdjacentHTML('beforeend', '<div class="think">Claude no quiso hacer este pedido. Probá pedirlo de otra forma.</div>'); if (ev.stop === 'max_tokens') d.insertAdjacentHTML('beforeend', '<div class="think">Se cortó porque el juego era muy largo. Pedile "seguí" o algo más chico.</div>'); }
-              else if (ev.t === 'error') throw new Error(ev.d);
-            });
-            return paso();
-          });
-        }
-        return paso();
-      })
-      .catch(function (e) { d.innerHTML = '<span class="think">' + escH(e.message || 'Se cortó la conexión.') + '</span>'; hist.pop(); guardar(); })
-      .then(function () { ocupado = false; $('send').disabled = false; });
-  }
-  $('send').onclick = enviar;
-  $('ask').onkeydown = function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } };
+  window.__alEntrar = function () { cargarJuegos(); cargarPedidos(); };
 })();
 </script>
 </body>
