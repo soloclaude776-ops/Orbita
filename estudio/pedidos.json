@@ -1,3 +1,13 @@
 {
-  "pedidos": []
+  "pedidos": [
+    {
+      "id": "pmw8gvmhz",
+      "fecha": "2026-11-08T23:32:03.623Z",
+      "juego": "warzone",
+      "texto": "mejoralo hacelo un juego q ande y ponele logo",
+      "estado": "pendiente",
+      "respuesta": "",
+      "url": ""
+    }
+  ]
 }
