@@ -52,7 +52,7 @@ module.exports = function handleSubir(req, res, ctx) {
   readBody(req, 15 * 1024 * 1024).then(async raw => {
     let m; try { m = JSON.parse(raw); } catch (e) { return send(res, 400, { error: 'Datos inválidos.' }); }
     if (!okPass(m.clave)) { fail(ip); return send(res, 401, { error: 'Contraseña incorrecta.' }); }
-    if (url === '/api/entrar') return send(res, 200, { ok: true, guardaEnGithub: !!TOKEN });
+    if (url === '/api/entrar') return send(res, 200, { ok: true, guardaEnGithub: !!TOKEN, claude: !!process.env.ANTHROPIC_API_KEY });
     // validar el juego
     const id = String(m.id || '').toLowerCase();
     if (!/^[a-z0-9]{2,20}$/.test(id) || RESERVED.has(id)) return send(res, 400, { error: 'La dirección tiene que ser de 2 a 20 letras o números, sin espacios, y no puede ser una reservada.' });
@@ -86,4 +86,14 @@ module.exports = function handleSubir(req, res, ctx) {
     send(res, 200, { ok: true, url: '/' + id, permanente, aviso });
   }).catch(e => send(res, 413, { error: e.message }));
   return true;
+};
+
+// herramientas compartidas con el Estudio (chat con Claude): misma contraseña y mismo límite de intentos
+module.exports.readBody = readBody;
+module.exports.send = send;
+module.exports.okPass = function (clave, req) {
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  if (limited(ip)) return false;
+  if (okPass(clave)) return true;
+  fail(ip); return false;
 };

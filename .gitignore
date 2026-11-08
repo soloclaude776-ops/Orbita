@@ -3,3 +3,6 @@ cubix-web/dist/
 cubix-web/test-world.json
 cubix-web/world.json
 cubix-web/marte.json
+.claude/
+cubix-web/.claude/
+cubix-web/test-marte.json

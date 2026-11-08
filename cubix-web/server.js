@@ -6,6 +6,7 @@ const { WebSocketServer } = require('ws');
 const handleAi = require('./ai'); // los personajes de Éter piensan con IA
 const marte = require('./marte'); // JEZERO: colonias en Marte compartidas
 const handleSubir = require('./subir'); // página /subir: cargar juegos nuevos con contraseña
+const handleEstudio = require('./estudio'); // chat con Claude dentro de /subir para crear juegos
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_KEY = process.env.ADMIN_KEY || '';           // clave para poder hacer "Mundo nuevo"
@@ -56,6 +57,7 @@ function gameList() {
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.end('ok'); return; }
   if (handleAi(req, res)) return;
+  if (handleEstudio(req, res, { okPass: handleSubir.okPass, readBody: handleSubir.readBody, send: handleSubir.send })) return;
   if (handleSubir(req, res, { PAGES, withIcon })) return;
   if (req.url.split('?')[0] === '/api/juegos') { res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-cache' }); res.end(JSON.stringify(gameList())); return; }
   const pf = /^\/portadas\/([a-z0-9]+)\.jpg$/.exec(req.url.split('?')[0]);

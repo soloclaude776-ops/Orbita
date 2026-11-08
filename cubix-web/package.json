@@ -12,6 +12,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.5.0",
     "esbuild-wasm": "0.24.0",
     "ws": "8.18.0"
   }
