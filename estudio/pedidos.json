@@ -5,9 +5,9 @@
       "fecha": "2026-11-08T23:32:03.623Z",
       "juego": "warzone",
       "texto": "mejoralo hacelo un juego q ande y ponele logo",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Rehice el juego de cero y le puse logo: ahora se llama \"Zona de Fuego\" (le cambié el nombre porque \"Warzone\" ya es de otro juego), un shooter visto desde arriba donde vos y dos compañeros aguantan oleadas de soldados, tiradores y un blindado cada 5 oleadas. En compu te movés con WASD, apuntás y disparás con el mouse, tirás granadas con G o clic derecho y rodás con Espacio; en el celu usás dos palancas en pantalla y botones. Cubrite detrás de muros y cajas, reviví a tus compañeros acercándote y gastá los créditos entre oleadas en armas nuevas, vida y mejoras. Tu mejor oleada y tus puntos quedan guardados.",
+      "url": "/warzone"
     }
   ]
 }
