@@ -5,13 +5,16 @@
   "juegos": [
     {
       "id": "warzone",
-      "titulo": "Warzone",
-      "sub": "Juego de guerra",
-      "desc": "juego de guerra muy divertido online y gratis que se pude jugar en equipo.",
+      "titulo": "Zona de Fuego",
+      "sub": "Escuadrón contra oleadas",
+      "desc": "Shooter de acción visto desde arriba: vos y dos compañeros contra oleadas de soldados, tiradores y un blindado cada 5 oleadas. Cubrite, revivilos, tirá granadas y mejorá el equipo con lo que ganás.",
       "tags": [
-        "Acción"
+        "Acción",
+        "Disparos",
+        "Oleadas",
+        "Escuadrón"
       ],
-      "motor": "3d",
+      "motor": "2d",
       "nuevo": true,
       "subidoPor": ""
     },
