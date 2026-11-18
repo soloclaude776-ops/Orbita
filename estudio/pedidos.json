@@ -44,6 +44,15 @@
       "estado": "pendiente",
       "respuesta": "",
       "url": ""
+    },
+    {
+      "id": "pmwmpmpqb",
+      "fecha": "2026-11-18T22:45:50.915Z",
+      "juego": "isla",
+      "texto": "crea un bedwars",
+      "estado": "pendiente",
+      "respuesta": "",
+      "url": ""
     }
   ]
 }
