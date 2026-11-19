@@ -4,6 +4,21 @@
   "destacado": "marte",
   "juegos": [
     {
+      "id": "umbral",
+      "titulo": "Umbral",
+      "sub": "¿Qué hay del otro lado?",
+      "desc": "Despertás frente a una puerta gigante con doce huecos vacíos. Explorá salas que cambian, resolvé acertijos raros, juntá páginas perdidas y descubrí quién te guía desde las sombras… y qué hay del otro lado.",
+      "tags": [
+        "Misterio",
+        "Exploración",
+        "Acertijos",
+        "Atmosférico",
+        "Secretos"
+      ],
+      "motor": "2d",
+      "nuevo": true
+    },
+    {
       "id": "warzone",
       "titulo": "Zona de Fuego",
       "sub": "Escuadrón contra oleadas",
