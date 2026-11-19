@@ -4,6 +4,21 @@
   "destacado": "marte",
   "juegos": [
     {
+      "id": "turbolocos",
+      "titulo": "TURBO LOCOS",
+      "sub": "Karts locos en 3D",
+      "desc": "Carreras de karts disparatadas en 3D: elegí un bicho raro, derrapá para cargar el mini turbo, tirá chicles y moscas rastreadoras, buscá los atajos y ganá las copas para desbloquear pistas y corredores.",
+      "tags": [
+        "3D",
+        "Carreras",
+        "Karts",
+        "Arcade",
+        "Copas"
+      ],
+      "motor": "3d",
+      "nuevo": true
+    },
+    {
       "id": "umbral",
       "titulo": "Umbral",
       "sub": "¿Qué hay del otro lado?",
