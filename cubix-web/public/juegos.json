@@ -4,6 +4,21 @@
   "destacado": "marte",
   "juegos": [
     {
+      "id": "nitro",
+      "titulo": "NITRO GARAGE",
+      "sub": "Carreras y arena de autos 3D",
+      "desc": "Corré contra rivales en circuitos de desierto, ciudad y nieve, o reventá autos en la arena. Según tu puesto ganás estrellas y plata para comprar autos nuevos, mejorarlos en el garage y desbloquear ligas.",
+      "tags": [
+        "3D",
+        "Carreras",
+        "Autos",
+        "Arena",
+        "Garage"
+      ],
+      "motor": "3d",
+      "nuevo": true
+    },
+    {
       "id": "turbolocos",
       "titulo": "TURBO LOCOS",
       "sub": "Karts locos en 3D",
@@ -66,14 +81,17 @@
     {
       "id": "isla",
       "titulo": "Última Isla",
-      "sub": "Batalla en una isla",
-      "desc": "Caé en paracaídas, juntá madera y piedra, construí defensas y peleá contra 15 rivales con IA mientras se cierra la tormenta.",
+      "sub": "Guerra de Nidos en el cielo",
+      "desc": "Cada equipo tiene un nido en su isla flotante. Juntá cobre, oro y cristales, comprá en la tienda, armá puentes bloque a bloque, blindá tu nido y cruzá a romper los de los rivales. Si te rompen el nido, no reaparecés más.",
       "tags": [
         "3D",
         "Acción",
-        "Construcción"
+        "Construcción",
+        "Equipos",
+        "Estrategia"
       ],
-      "motor": "3d"
+      "motor": "3d",
+      "nuevo": true
     },
     {
       "id": "farol",
