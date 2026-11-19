@@ -7,11 +7,12 @@
       "id": "warzone",
       "titulo": "Zona de Fuego",
       "sub": "Escuadrón contra oleadas",
-      "desc": "Shooter de acción visto desde arriba: vos y dos compañeros contra oleadas de soldados, tiradores y un blindado cada 5 oleadas. Cubrite, revivilos, tirá granadas y mejorá el equipo con lo que ganás.",
+      "desc": "Vos y tu escuadrón contra 50 oleadas cada vez más bravas. Jefes distintos cada 10 oleadas, un General final épico y, si ganás, oleadas infinitas. Cubrite, reviví compañeros, mejorá el equipo y continuá tu partida cuando quieras.",
       "tags": [
         "Acción",
         "Disparos",
         "Oleadas",
+        "Jefes",
         "Escuadrón"
       ],
       "motor": "2d",
