@@ -14,27 +14,27 @@
       "fecha": "2026-11-18T22:43:47.522Z",
       "juego": "warzone",
       "texto": "ponele portada y cada dis oledas q halla boses y q halla un final pero q sea muyyyy lejano y despues q tengauna opcion oleadas infinitas para q no pare para quien quiera seguir jugando",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Le hice una portada nueva a Zona de Fuego y una pantalla de título con llamas. Ahora cada 10 oleadas aparece un jefe distinto: el Toro, la Avispa, la Víbora, el Mamut y, en la oleada 50, el General Titán, que es el final. Si le ganás, ves la pantalla de victoria y se te abren las oleadas infinitas para seguir jugando todo lo que quieras. El avance se guarda solo y podés retomar con «Continuar».",
+      "url": "/warzone"
     },
     {
       "id": "pmwmpkv9c",
       "fecha": "2026-11-18T22:44:24.768Z",
       "juego": "",
       "texto": "crea un juego q sea bldo pero q si o si quieras jugar por curiosidad y q sea buenoo",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Te hice UMBRAL, un juego de misterio: te despertás frente a una puerta gigante con 12 huecos y tenés que descubrir qué hay del otro lado. Cada sala tiene un acertijo distinto: campanas, espejos, una sombra que te imita, un ojo guardián del que te tenés que esconder y más. Además hay 14 páginas escondidas que van contando la historia, y si las juntás todas ves un final especial. Te movés con WASD, las flechas o el joystick, usás las cosas con E o el botón USAR, y el avance se guarda solo.",
+      "url": "/umbral"
     },
     {
       "id": "pmwmplx2m",
       "fecha": "2026-11-18T22:45:13.774Z",
       "juego": "",
       "texto": "crea un jugo de carreras locas con graficos avanzados como si furea un mario kart pero diferente",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Te hice TURBO LOCOS, un juego de carreras de karts en 3D, con personajes, pistas e ítems inventados por nosotros (no copiamos nada de Mario Kart). Hay 4 pistas con rampas y atajos, 8 bichos raros para elegir y ítems como la Mosca Rastreadora, el Chicle Rebotón y la Burbuja Escudo. Si mantenés Espacio mientras doblás, derrapás y cargás un mini turbo, y el ítem lo usás con E. En el celu tenés botones grandes y el kart acelera solo. Ganá las copas para desbloquear pistas y corredores.",
+      "url": "/turbolocos"
     },
     {
       "id": "pmwmpme5x",
