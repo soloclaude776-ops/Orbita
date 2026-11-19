@@ -41,27 +41,27 @@
       "fecha": "2026-11-18T22:45:35.925Z",
       "juego": "isla",
       "texto": "o borralo o mejorarlo es una pija",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Lo rehice de cero: Última Isla ahora es una Guerra de Nidos en islas flotantes, con gráficos nuevos, sonidos, bots que pelean en serio y 4 dificultades que se desbloquean ganando. Juntá cobre y oro en tu generador, comprá en la tienda (B), armá puentes con click derecho y rompé los huevos rivales con click izquierdo. En el celu tenés joystick y botones GOLPEAR, PONER, SALTAR y TIENDA.",
+      "url": "/isla"
     },
     {
       "id": "pmwmpmpqb",
       "fecha": "2026-11-18T22:45:50.915Z",
       "juego": "isla",
       "texto": "crea un bedwars",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "¡Hecho! Lo armé en Isla como un juego propio del estilo: cuatro equipos, cada uno con un nido (un huevo gigante) en su isla del cielo. Mientras tu nido esté en pie reaparecés; si te lo rompen, la próxima muerte te deja afuera. Cubrí tu nido con bloques, cruzá el vacío con puentes y quedate como último equipo en pie; ganando desbloqueás colores y sombreros.",
+      "url": "/isla"
     },
     {
       "id": "pmwmpywdo",
       "fecha": "2026-11-18T22:55:19.404Z",
       "juego": "",
       "texto": "crea un juego de autos, o sea que algo como el veicle master y el cars arena, cuando ganas una partida te dan estrellas depende en que puesto quedes las estrellas te dan como el veicle master, garge con las estrellas vas ganando dinero y con el dinero vas avanzando y demas, vos me entendes ah y buenos graficos como en jezero",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Te hice NITRO GARAGE, un juego propio de autos en 3D con carreras de 3 vueltas y arena de choques en desierto rojo, ciudad de noche, nieve y costa. Según el puesto ganás estrellas (1º ★★★, 2º ★★, 3º ★) que se convierten en plata, y con las estrellas abrís ligas nuevas. En el garage comprás 6 autos, los mejorás (motor, neumáticos, nitro, blindaje) y los pintás. Flechas o WASD para manejar, espacio freno de mano, Shift nitro; en el celu, botones en pantalla.",
+      "url": "/nitro"
     }
   ]
 }
