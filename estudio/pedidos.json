@@ -62,6 +62,15 @@
       "estado": "hecho",
       "respuesta": "Te hice NITRO GARAGE, un juego propio de autos en 3D con carreras de 3 vueltas y arena de choques en desierto rojo, ciudad de noche, nieve y costa. Según el puesto ganás estrellas (1º ★★★, 2º ★★, 3º ★) que se convierten en plata, y con las estrellas abrís ligas nuevas. En el garage comprás 6 autos, los mejorás (motor, neumáticos, nitro, blindaje) y los pintás. Flechas o WASD para manejar, espacio freno de mano, Shift nitro; en el celu, botones en pantalla.",
       "url": "/nitro"
+    },
+    {
+      "id": "pmwph8zkm",
+      "fecha": "2026-11-20T21:14:32.086Z",
+      "juego": "umbral",
+      "texto": "Ponele una foto de portada como a todos los Juegos",
+      "estado": "pendiente",
+      "respuesta": "",
+      "url": ""
     }
   ]
 }
