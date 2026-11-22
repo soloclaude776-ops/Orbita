@@ -98,6 +98,15 @@
       "estado": "hecho",
       "respuesta": "¡Listo! Ahora en el celu tenés dos palancas fijas a la vista: MOVER a la izquierda y DISPARAR a la derecha. Si solo tocás o mantenés apretado en la derecha, tu soldado apunta solo al enemigo más cercano y tira; si arrastrás, apuntás vos con una línea de mira. Los botones de arma, recargar, rodar y granada quedaron en fila arriba de la palanca para que no te tapen el disparo.",
       "url": "/warzone"
+    },
+    {
+      "id": "pmwrxacha",
+      "fecha": "2026-11-22T14:19:01.678Z",
+      "juego": "nitro",
+      "texto": "Se ve todo blanco arregla esoo",
+      "estado": "pendiente",
+      "respuesta": "",
+      "url": ""
     }
   ]
 }
