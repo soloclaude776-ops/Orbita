@@ -95,9 +95,9 @@
       "fecha": "2026-11-20T21:17:16.993Z",
       "juego": "warzone",
       "texto": "No me deja disparar en el cel mejora eso q sean más accesibles los controles como en brawl stras",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "¡Listo! Ahora en el celu tenés dos palancas fijas a la vista: MOVER a la izquierda y DISPARAR a la derecha. Si solo tocás o mantenés apretado en la derecha, tu soldado apunta solo al enemigo más cercano y tira; si arrastrás, apuntás vos con una línea de mira. Los botones de arma, recargar, rodar y granada quedaron en fila arriba de la palanca para que no te tapen el disparo.",
+      "url": "/warzone"
     }
   ]
 }
