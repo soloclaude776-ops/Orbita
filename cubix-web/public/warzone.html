@@ -28,10 +28,10 @@ h2{margin:6px 0 12px;color:#ffd56b;letter-spacing:2px}
 .shop{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:12px 0}
 .shop .btn{margin:0}
 .cash{font-size:20px;color:#7dff8a;font-weight:800}
-#tc{position:fixed;right:12px;bottom:12px;display:none;z-index:3;gap:8px;flex-direction:column;align-items:flex-end}
+#tc{position:fixed;right:12px;bottom:178px;display:none;z-index:3;gap:8px;flex-direction:column;align-items:flex-end}
 #tc.on{display:flex}
 #tc .row{display:flex;gap:8px}
-.tb{width:58px;height:58px;border-radius:50%;border:2px solid #ffffff66;background:#00000055;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1}
+.tb{width:52px;height:52px;border-radius:50%;border:2px solid #ffffff66;background:#00000055;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1}
 .tb:active{background:#ff8a2f88}
 #pauseBtn{position:fixed;top:92px;left:10px;z-index:3;display:none;padding:6px 14px;border-radius:10px;border:1px solid #ffffff55;background:#00000066;color:#fff;font-weight:800;font-family:inherit}
 #pauseBtn.on{display:block}
@@ -74,7 +74,7 @@ h2{margin:6px 0 12px;color:#ffd56b;letter-spacing:2px}
   </div>
   <div class="help" id="helpTxt">
     <b>Compu:</b> WASD mover · Mouse apuntar · Clic disparar · Clic derecho o G granada · R recargar · 1/2/3 o rueda cambiar arma · Espacio rodar · P pausa<br>
-    <b>Celu:</b> palanca izquierda mover · palanca derecha apuntar y disparar · botones para granada, rodar, recargar y arma<br>
+    <b>Celu:</b> palanca izquierda mover · tocá la derecha para disparar (apunta solo) o arrastrá para apuntar vos · botones para granada, rodar, recargar y arma<br>
     💾 La partida se guarda sola cada vez que superás una oleada.
   </div>
 </div></div>
@@ -115,8 +115,7 @@ h2{margin:6px 0 12px;color:#ffd56b;letter-spacing:2px}
 
 <button id="pauseBtn" onclick="togglePause()">❚❚</button>
 <div id="tc">
-  <div class="row"><div class="tb" id="tbW">ARMA</div><div class="tb" id="tbR">RECAR<br>GAR</div></div>
-  <div class="row"><div class="tb" id="tbD">RODAR</div><div class="tb" id="tbG">GRA<br>NADA</div></div>
+  <div class="row"><div class="tb" id="tbW">ARMA</div><div class="tb" id="tbR">RECAR<br>GAR</div><div class="tb" id="tbD">RODAR</div><div class="tb" id="tbG">GRA<br>NADA</div></div>
 </div>
 
 <script>
@@ -319,6 +318,8 @@ let S=null,running=false,paused=false;
 const keys={},mouse={x:0,y:0,down:false,wx:0,wy:0};
 let touchMode=false;
 const sticks={move:{id:null,ox:0,oy:0,x:0,y:0},aim:{id:null,ox:0,oy:0,x:0,y:0}};
+let tapFire=0,aimDrag=false;
+function nearestFoe(p,maxD){let best=null,bd=maxD;for(const e of S.enemies){if(e.dead)continue;const d=dist(p,e);if(d<bd&&e.see){bd=d;best=e;}}return best;}
 
 function mkUnit(x,y,team,extra){return Object.assign({x,y,r:14,hp:100,maxhp:100,ang:0,team,cd:0,flash:0,hurt:0},extra||{});}
 
@@ -775,21 +776,25 @@ function update(dt){
   if(p.moving){p.lmx=mx;p.lmy=my;}
   // apuntar
   let firing=false;
-  if(touchMode&&sticks.aim.id!==null){
-    const dx=sticks.aim.x-sticks.aim.ox,dy=sticks.aim.y-sticks.aim.oy,m=Math.hypot(dx,dy);
-    if(m>10){p.ang=Math.atan2(dy,dx);}
-    if(m>28)firing=true;
+  if(tapFire>0)tapFire-=dt;
+  aimDrag=false;
+  if(touchMode&&(sticks.aim.id!==null||tapFire>0)){
+    // estilo celu: arrastrar = apuntar a mano y disparar; tocar o mantener sin arrastrar = apunta solo al más cercano y dispara
+    const dx=sticks.aim.x-sticks.aim.ox,dy=sticks.aim.y-sticks.aim.oy,m=sticks.aim.id!==null?Math.hypot(dx,dy):0;
+    if(m>16){p.ang=Math.atan2(dy,dx);aimDrag=true;}
+    else{const t=nearestFoe(p,620);if(t)p.ang=Math.atan2(t.y-p.y,t.x-p.x);}
+    firing=true;
   }else if(!touchMode){
     p.ang=Math.atan2(mouse.wy-p.y,mouse.wx-p.x);firing=mouse.down;
   }else if(p.moving&&sticks.aim.id===null){
     // auto-apuntar al enemigo visible más cercano si no se usa la palanca derecha
-    let best=null,bd=450;for(const e of S.enemies){const d=dist(p,e);if(d<bd&&e.see){bd=d;best=e;}}
+    const best=nearestFoe(p,450);
     p.ang=best?Math.atan2(best.y-p.y,best.x-p.x):Math.atan2(p.lmy,p.lmx);
   }
   p.cd-=dt;p.flash-=dt;p.hurt-=dt;
   if(p.reloading>0){p.reloading-=dt;if(p.reloading<=0){const w=S.weapons[p.wi],n=Math.min(w.mag-w.cur,w.res);w.cur+=n;w.res-=n;sfx('reload',0.7);}}
   const W=S.weapons[p.wi];
-  if(firing&&(W.auto||!p.shotLatch)){playerShoot();p.shotLatch=true;}
+  if(firing&&(W.auto||touchMode||!p.shotLatch)){playerShoot();p.shotLatch=true;}
   if(!firing)p.shotLatch=false;
 
   // aliados
@@ -1175,7 +1180,7 @@ function drawHUD(){
   ctx.fillText(S.score+' pts · 💰'+S.credits,20,small?47:53);
   ctx.fillStyle='#c7d3bb';ctx.fillText('Enemigos: '+(S.enemies.length+S.toSpawn),20,small?64:72);
   // vida
-  const bw=small?150:230,bx=10,by=VH-(touchMode?190:56);
+  const bw=small?150:230,bx=10,by=VH-(touchMode?212:56);
   ctx.fillStyle='rgba(10,16,10,.65)';ctx.fillRect(bx,by,bw+20,46);
   ctx.fillStyle='#333';ctx.fillRect(bx+10,by+10,bw,12);
   ctx.fillStyle=p.hp/p.maxhp>0.3?'#5be35b':'#ff5b4a';ctx.fillRect(bx+10,by+10,bw*Math.max(0,p.hp)/p.maxhp,12);
@@ -1242,10 +1247,24 @@ function drawHUD(){
     ctx.fillStyle='rgba(0,0,0,.6)';const tw=ctx.measureText(S.banner).width;ctx.fillRect(VW/2-tw/2-16,VH*0.22-30,tw+32,44);
     ctx.fillStyle='#ffd56b';ctx.fillText(S.banner,VW/2,VH*0.22);ctx.globalAlpha=1;}
   // palancas táctiles
-  if(touchMode){for(const s of [sticks.move,sticks.aim])if(s.id!==null){
-    ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(s.ox,s.oy,55,0,7);ctx.stroke();
-    let dx=s.x-s.ox,dy=s.y-s.oy,m=Math.hypot(dx,dy);if(m>55){dx*=55/m;dy*=55/m;}
-    ctx.fillStyle='rgba(255,213,107,.5)';ctx.beginPath();ctx.arc(s.ox+dx,s.oy+dy,24,0,7);ctx.fill();}}
+  if(touchMode){
+    // línea de mira mientras arrastrás la palanca de disparo
+    if(aimDrag){const sx=(p.x-camX)*Z,sy=(p.y-camY)*Z,L=Math.min(VW,VH)*0.45;
+      const g=ctx.createLinearGradient(sx,sy,sx+Math.cos(p.ang)*L,sy+Math.sin(p.ang)*L);g.addColorStop(0,'rgba(255,213,107,.55)');g.addColorStop(1,'rgba(255,213,107,0)');
+      ctx.strokeStyle=g;ctx.lineWidth=10;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(sx+Math.cos(p.ang)*20,sy+Math.sin(p.ang)*20);ctx.lineTo(sx+Math.cos(p.ang)*L,sy+Math.sin(p.ang)*L);ctx.stroke();ctx.lineCap='butt';}
+    const R=58,base=[[sticks.move,90,VH-100,'#7fd3ff','MOVER'],[sticks.aim,VW-100,VH-100,'#ff8a2f','DISPARAR']];
+    for(const [s,hx,hy,col,lab] of base){
+      const on=s.id!==null,ox=on?s.ox:hx,oy=on?s.oy:hy;
+      ctx.globalAlpha=on?0.95:0.55;
+      ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.arc(ox,oy,R,0,7);ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(ox,oy,R,0,7);ctx.stroke();
+      let dx=on?s.x-s.ox:0,dy=on?s.y-s.oy:0,m=Math.hypot(dx,dy);if(m>R){dx*=R/m;dy*=R/m;}
+      ctx.fillStyle=col;ctx.globalAlpha*=0.75;ctx.beginPath();ctx.arc(ox+dx,oy+dy,26,0,7);ctx.fill();
+      ctx.globalAlpha=on?0.95:0.55;
+      if(!on){ctx.fillStyle='#fff';ctx.font='900 10px system-ui,sans-serif';ctx.textAlign='center';ctx.fillText(lab,ox,oy+4);ctx.textAlign='left';}
+    }
+    ctx.globalAlpha=1;
+  }
   else{ // mira
     ctx.strokeStyle='#ffd56b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mouse.x,mouse.y,10,0,7);ctx.moveTo(mouse.x-16,mouse.y);ctx.lineTo(mouse.x-6,mouse.y);ctx.moveTo(mouse.x+6,mouse.y);ctx.lineTo(mouse.x+16,mouse.y);ctx.moveTo(mouse.x,mouse.y-16);ctx.lineTo(mouse.x,mouse.y-6);ctx.moveTo(mouse.x,mouse.y+6);ctx.lineTo(mouse.x,mouse.y+16);ctx.stroke();}
 }
@@ -1380,13 +1399,13 @@ cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('wheel',e=>{if(S&&running&&!paused)switchWeapon(e.deltaY>0?1:-1);},{passive:true});
 
 function setTouch(){if(touchMode)return;touchMode=true;mouse.down=false;
-  document.getElementById('helpTxt').innerHTML='<b>Celu:</b> palanca izquierda mover · palanca derecha apuntar y disparar · botones para granada, rodar, recargar y cambiar arma. Si no usás la palanca derecha, apuntás solo al enemigo más cercano.';
+  document.getElementById('helpTxt').innerHTML='<b>Celu:</b> palanca izquierda mover · tocá en cualquier lado de la derecha para disparar: si solo tocás o mantenés, apunta solo al enemigo más cercano; si arrastrás, apuntás vos con la línea de mira · botones para granada, rodar, recargar y cambiar arma.';
   if(running)document.getElementById('tc').classList.add('on');}
 window.addEventListener('touchstart',()=>{setTouch();audio();},{passive:true,capture:true});
 cv.addEventListener('touchstart',e=>{e.preventDefault();
   for(const t of e.changedTouches){
-    const s=t.clientX<VW/2?sticks.move:sticks.aim;
-    if(s.id===null){s.id=t.identifier;s.ox=s.x=t.clientX;s.oy=s.y=t.clientY;}
+    const s=t.clientX<VW*0.45?sticks.move:sticks.aim;
+    if(s.id===null){s.id=t.identifier;s.ox=s.x=t.clientX;s.oy=s.y=t.clientY;if(s===sticks.aim)tapFire=0.18;}
   }},{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();
   for(const t of e.changedTouches)for(const s of [sticks.move,sticks.aim])if(s.id===t.identifier){s.x=t.clientX;s.y=t.clientY;}},{passive:false});
