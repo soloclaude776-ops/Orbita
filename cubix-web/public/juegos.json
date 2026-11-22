@@ -36,14 +36,14 @@
     {
       "id": "umbral",
       "titulo": "Umbral",
-      "sub": "¿Qué hay del otro lado?",
-      "desc": "Despertás frente a una puerta gigante con doce huecos vacíos. Explorá salas que cambian, resolvé acertijos raros, juntá páginas perdidas y descubrí quién te guía desde las sombras… y qué hay del otro lado.",
+      "sub": "Vuelo de luz",
+      "desc": "Sos Lumi, una lucecita perdida: tocá para volar y pasá por el hueco de cada puerta. Cuantas más cruzás, más ganás. Hacé pasadas perfectas para ganar escudos, recorré salas nuevas cada 10 puertas y juntá chispas para comprar luces.",
       "tags": [
-        "Misterio",
-        "Exploración",
-        "Acertijos",
-        "Atmosférico",
-        "Secretos"
+        "Arcade",
+        "Un toque",
+        "Récords",
+        "Luces",
+        "Rápido"
       ],
       "motor": "2d",
       "nuevo": true
