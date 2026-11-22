@@ -68,27 +68,27 @@
       "fecha": "2026-11-20T21:14:32.086Z",
       "juego": "umbral",
       "texto": "Ponele una foto de portada como a todos los Juegos",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Umbral ya tiene portada nueva en la página principal: Lumi, la lucecita, volando entre las puertas con el título al costado. Como además rehicimos el juego (ver el otro pedido), la portada muestra cómo se juega ahora.",
+      "url": "/umbral"
     },
     {
       "id": "pmwph9h54",
       "fecha": "2026-11-20T21:14:54.856Z",
       "juego": "nitro",
       "texto": "Ponele foto de portada",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Listo: NITRO GARAGE ya tiene portada, sacada de una carrera de verdad en el circuito del desierto, con los autos arrancando bajo el arco de largada y el título bien grande. La vas a ver en la página principal en un par de minutos.",
+      "url": "/nitro"
     },
     {
       "id": "pmwphb1bi",
       "fecha": "2026-11-20T21:16:07.662Z",
       "juego": "umbral",
       "texto": "Mejoralo cambiarlo por q no está intuitivo q sea algoas simple algo como enviar algo y mientras más más ganas o algo así no se o como u n fluppy flap",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Rehicimos Umbral entero para que sea súper simple: ahora sos Lumi, una lucecita, y tocás la pantalla (o clic o espacio) para aletear y pasar por el hueco de cada puerta; cuantas más cruzás, más puntos. Es de un toque como los clásicos de aletear, pero con estilo propio: si pasás justo por el medio es ¡Perfecto! y con 5 perfectos ganás un escudo que te salva de un choque. Cada 10 puertas cambiás de sala (y se pone más rápido, con puertas que se mueven), ganás medallas a las 10, 25, 50 y 100, y con las chispas ✦ que juntás comprás luces nuevas en la tienda; el récord y las chispas quedan guardados.",
+      "url": "/umbral"
     },
     {
       "id": "pmwphcitd",
