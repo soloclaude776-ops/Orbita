@@ -104,9 +104,9 @@
       "fecha": "2026-11-22T14:19:01.678Z",
       "juego": "nitro",
       "texto": "Se ve todo blanco arregla esoo",
-      "estado": "pendiente",
-      "respuesta": "",
-      "url": ""
+      "estado": "hecho",
+      "respuesta": "Lo blanco venía de los reflejos 3D: en algunas placas de video el efecto de reflejo se rompe y deja la pantalla toda blanca. Ahora el juego lo prueba mejor al arrancar, y si igual detecta la pantalla blanca apaga los reflejos solo (y si hace falta baja la calidad) y te avisa con un cartelito. También agregué en Opciones el botón \"Reflejos\" para apagarlos a mano y bajé el brillo del piso del garage. Si te sigue pasando, probá Calidad gráfica en \"Baja\" y contanos en qué celu o compu jugás.",
+      "url": "/nitro"
     }
   ]
 }
